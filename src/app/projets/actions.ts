@@ -4,6 +4,7 @@ import {syncCalendar} from '../../modules/integrations/calendar/service';
 import { currentSession } from '../../modules/identity/session';
 import { getDb } from '../../db/client';
 import { programmeService, ProgrammeError } from '../../modules/programme/service';
+import {teamService} from '../../modules/team/service';
 import { AccessError } from '../../modules/team/service';
 import { projectInput, liturgyInput } from '../../modules/programme/validation';
 import { scheduleOccurrences } from '../../modules/programme/dates';
@@ -17,7 +18,8 @@ export async function programmeAction(_state: ProgrammeState, form: FormData): P
     const service = programmeService(getDb()); const orgId = get('organizationId'); const projectId = get('projectId'); const revision = Number(get('revision')); const operation = get('operation');
     let href: string | undefined;
     if (operation === 'create') {
-      const input = { ...Object.fromEntries(form.entries()), allDay: get('allDay') === 'true', endDate: get('allDay') === 'true' && get('kind') === 'event' ? get('startDate') : get('endDate'), occurrenceCount: Number(get('occurrenceCount')), startTime: get('startTime') || null, endTime: get('endTime') || null };
+      const org=(await teamService(getDb()).listOrganizations(actor)).find(s=>s.id===orgId);if(!org)throw new AccessError();
+      const input = { ...Object.fromEntries(form.entries()), timezone:org.timezone, ministry:'',ownerId:get('ownerId'),validatorId:get('validatorId'),deputyId:get('deputyId'),decisionMakerId:get('decisionMakerId'),communicationLevel:get('communicationLevel')||'standard',usefulDate:get('usefulDate'),location:get('location'),practicalInfo:get('practicalInfo'),resources:get('resources'),objective:get('objective').trim()||'À préciser',audience:get('audience').trim()||'À préciser',message:get('message').trim()||'À préciser', allDay: get('allDay') === 'true', endDate: get('endDate') || get('startDate'), occurrenceCount: Number(get('occurrenceCount')), startTime: get('startTime') || null, endTime: get('endTime') || null };
       if (get('intent') === 'preview') { if (!await service.canCreate(actor, orgId)) throw new AccessError(); const value = projectInput.parse(input); const dates = scheduleOccurrences(value); return { status: 'preview', message: value.kind === 'campaign' ? `Aperçu : campagne du ${value.startDate} au ${value.endDate}, sans événement créé. Rien n’est enregistré.` : `Aperçu : ${dates.length} occurrence(s), du ${dates[0].startDate} au ${dates.at(-1)!.endDate}, fuseau ${value.timezone}. Rien n’est enregistré.` }; }
       const p = await service.create(actor, orgId, input); href = `/projets/${p.id}?organisation=${orgId}`;
     } else if (operation === 'occurrence') await service.changeOccurrence(actor, orgId, projectId, revision, { occurrenceId: get('occurrenceId'), action: z.enum(['reschedule','cancel']).parse(get('change')), date: get('date'), endDate: get('endDate'), startTime: get('startTime'), endTime: get('endTime'), reason: get('reason') });
