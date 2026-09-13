@@ -24,3 +24,10 @@ export const joinRequests = pgTable('join_requests', {
   status: text('status').notNull().default('pending'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, t => [uniqueIndex('join_request_org_email').on(t.organizationId,t.email), check('join_request_status',sql`${t.status} in ('pending','approved','rejected')`)]);
+export const googleCalendars = pgTable('google_calendars', {
+ organizationId: uuid('organization_id').primaryKey().references(()=>organizations.id),
+ connectedBy: text('connected_by').notNull().references(()=>user.id),
+ googleEmail: text('google_email').notNull(), googleSubject: text('google_subject').notNull(),
+ refreshToken: text('refresh_token').notNull(), calendarId: text('calendar_id').notNull(),
+ status: text('status').notNull().default('pending'), lastSyncedAt: timestamp('last_synced_at',{withTimezone:true}),
+});

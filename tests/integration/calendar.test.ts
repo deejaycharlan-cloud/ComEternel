@@ -1,0 +1,34 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import {Pool} from 'pg';
+import {drizzle} from 'drizzle-orm/node-postgres';
+import {migrate} from 'drizzle-orm/node-postgres/migrator';
+import {eq,inArray} from 'drizzle-orm';
+import {organizations} from '../../src/db/schema';
+import {user} from '../../src/db/auth-schema';
+import {members,googleCalendars} from '../../src/db/team-schema';
+import {projects,occurrences} from '../../src/db/programme-schema';
+import {syncCalendar} from '../../src/modules/integrations/calendar/service';
+import {seal,unseal} from '../../src/modules/integrations/calendar/security';
+import type {getDb} from '../../src/db/client';
+const url=process.env.TEST_DATABASE_URL;if(!url||!new URL(url).pathname.endsWith('_test')||url===process.env.DATABASE_URL)throw new Error('Base de test dédiée requise.');
+test('Calendar : chiffrement par association, création, reprise, dates et annulation sans accès croisé',async()=>{
+ const pool=new Pool({connectionString:url});const db=drizzle(pool) as unknown as ReturnType<typeof getDb>;const a=randomUUID(),b=randomUUID(),uid=randomUUID(),pid=randomUUID(),eid=randomUUID();const calls:{url:string;method:string;body:any}[]=[];const original=globalThis.fetch;let fail=false;
+ try{await migrate(db,{migrationsFolder:'./drizzle'});
+ await db.insert(user).values({id:uid,name:'TEST Calendar',email:`${uid}@test.invalid`,emailVerified:true});
+ await db.insert(organizations).values([{id:a,name:'TEST A',timezone:'America/Martinique'},{id:b,name:'TEST B',timezone:'UTC'}]);
+ await db.insert(members).values({organizationId:a,userId:uid,role:'admin'});
+ const encrypted=seal('synthetic-refresh',a);assert.equal(unseal(encrypted,a),'synthetic-refresh');assert.throws(()=>unseal(encrypted,b));
+ await db.insert(googleCalendars).values({organizationId:a,connectedBy:uid,googleEmail:'test@test.invalid',googleSubject:'synthetic',refreshToken:encrypted,calendarId:'calendar-a'});
+ await db.insert(projects).values({id:pid,organizationId:a,createdBy:uid,creationKey:randomUUID(),inputHash:'TEST',title:'Rencontre',kind:'event',eventType:'TEST',location:'Fort-de-France',communicationLevel:'essential',timezone:'America/Martinique',startDate:'2090-01-20',endDate:'2090-01-20',allDay:true,cadence:'none',occurrenceCount:1});
+ await db.insert(occurrences).values({id:eid,projectId:pid,sequence:0,originalStartDate:'2090-01-20',startDate:'2090-01-20',endDate:'2090-01-20'});
+ globalThis.fetch=async(input,init)=>{const url=String(input);if(url==='https://oauth2.googleapis.com/token')return Response.json({access_token:'synthetic-access'});calls.push({url,method:init?.method||'GET',body:init?.body?JSON.parse(String(init.body)):null});if(fail)return new Response(null,{status:503});return init?.method==='PUT'&&calls.length===1?new Response(null,{status:404}):Response.json({});};
+ await syncCalendar(b,db);assert.equal(calls.length,0);
+ await syncCalendar(a,db);assert.equal(calls[0].method,'PUT');assert.equal(calls[1].method,'POST');assert.equal(calls[1].body.end.date,'2090-01-21');assert.equal(calls[1].body.location,'Fort-de-France');const stableId=calls[1].body.id;
+ await db.update(occurrences).set({startDate:'2090-01-21',endDate:'2090-01-21'}).where(eq(occurrences.id,eid));await syncCalendar(a,db);assert.equal(calls.at(-1)?.body.id,stableId);assert.equal(calls.at(-1)?.body.start.date,'2090-01-21');
+ fail=true;await syncCalendar(a,db);assert.equal((await db.select().from(googleCalendars))[0].status,'error');fail=false;await syncCalendar(a,db);assert.equal((await db.select().from(googleCalendars))[0].status,'synced');
+ await db.update(occurrences).set({status:'cancelled'}).where(eq(occurrences.id,eid));await syncCalendar(a,db);assert.equal(calls.at(-1)?.method,'DELETE');assert.ok(calls.every(c=>c.url.includes('calendar-a')));
+ const n=calls.length;await db.update(members).set({revokedAt:new Date()}).where(eq(members.organizationId,a));await syncCalendar(a,db);assert.equal(calls.length,n);assert.equal((await db.select().from(googleCalendars))[0].status,'reconnect');
+ }finally{globalThis.fetch=original;await db.delete(googleCalendars).where(eq(googleCalendars.organizationId,a));await db.delete(occurrences).where(eq(occurrences.id,eid));await db.delete(projects).where(eq(projects.id,pid));await db.delete(members).where(eq(members.userId,uid));await db.delete(organizations).where(inArray(organizations.id,[a,b]));await db.delete(user).where(eq(user.id,uid));await pool.end();}
+});

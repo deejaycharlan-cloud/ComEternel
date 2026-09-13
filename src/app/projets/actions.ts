@@ -1,4 +1,6 @@
 'use server';
+import {after} from 'next/server';
+import {syncCalendar} from '../../modules/integrations/calendar/service';
 import { currentSession } from '../../modules/identity/session';
 import { getDb } from '../../db/client';
 import { programmeService, ProgrammeError } from '../../modules/programme/service';
@@ -24,6 +26,7 @@ export async function programmeAction(_state: ProgrammeState, form: FormData): P
     else if (operation === 'access') await service.setAccess(actor, orgId, projectId, get('memberId'), form.getAll('permissions').map(String));
     else if (operation === 'liturgy') await service.saveLiturgy(actor, orgId, liturgyInput.parse({ title: get('title'), date: get('date'), tradition: get('tradition'), localCalendar: get('localCalendar'), source: get('source'), verified: get('verified') === 'on' }), get('id') || undefined, Number(get('revision')) || undefined);
     else throw new AccessError();
+    if(['create','occurrence','project','brief'].includes(operation))after(()=>syncCalendar(orgId));
     revalidatePath('/projets'); revalidatePath('/calendrier'); revalidatePath('/calendrier/liturgie'); revalidatePath('/'); if (projectId) revalidatePath(`/projets/${projectId}`);
     return { status: 'success', message: 'Enregistrement confirmé. Les tâches, fichiers et publications ne sont pas modifiés automatiquement.', href };
   } catch (error) { return { status: 'error', message: error instanceof ProgrammeError || error instanceof AccessError ? error.message : error instanceof z.ZodError ? 'Vérifiez les champs : noms, dates, personnes et informations obligatoires.' : error instanceof Error && error.message.startsWith('Heure ambiguë') ? error.message : 'Enregistrement impossible. Vos saisies sont conservées ; vérifiez les dates puis réessayez.' }; }
