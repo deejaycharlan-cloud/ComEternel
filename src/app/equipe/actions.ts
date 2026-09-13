@@ -10,7 +10,13 @@ export async function teamAction(_previous: FormState, data: FormData): Promise<
     const actor = await currentSession(); if (!actor) throw new AccessError('Connectez-vous à nouveau.');
     const orgId = String(data.get('organizationId') || ''); const kind = data.get('operation'); const service = teamService(getDb());
     const grants = { role: data.get('role'), professions: data.getAll('professions'), permissions: data.getAll('permissions') };
-    if (kind === 'invite') {
+    if (kind === 'approve-join' || kind === 'reject-join') {
+      const invitation = await service.reviewJoin(actor, orgId, String(data.get('id')),kind==='approve-join',grants);
+      if (invitation) {
+        try { await sendMail(invitation.email,'Votre demande ComÉternel est acceptée',`Acceptez votre invitation avec cette adresse email. Valable 48 heures.\n\n${process.env.BETTER_AUTH_URL}/invitations?token=${invitation.token}`); }
+        catch { revalidatePath('/equipe'); return {status:'error',message:'Demande approuvée, mais email non envoyé. Révoquez l’invitation puis renvoyez-la lorsque le service email sera disponible.'}; }
+      }
+    } else if (kind === 'invite') {
       const invitation = await service.invite(actor, orgId, { ...grants, email: data.get('email') });
       try { await sendMail(invitation.email, 'Invitation à un espace ComÉternel', `Invitation personnelle, à accepter avec la même adresse. Expire dans 48 heures.\n\n${process.env.BETTER_AUTH_URL}/invitations?token=${invitation.token}`); }
       catch { revalidatePath('/equipe'); return { status: 'error', message: 'Invitation créée, mais le service email n’a pas accepté le message. Vérifiez sa configuration, révoquez cette invitation puis recréez-la.' }; }

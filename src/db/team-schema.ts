@@ -12,3 +12,15 @@ export const invitations = pgTable('invitations', {
 }, t => [check('invitation_role', sql`${t.role} in ('admin','member')`)]);
 export const accessAudit = pgTable('access_audit', { id: uuid('id').defaultRandom().primaryKey(), organizationId: uuid('organization_id').notNull().references(() => organizations.id), actorId: text('actor_id').notNull().references(() => user.id), action: text('action').notNull(), targetId: text('target_id'), createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull() });
 export const projectGrants = pgTable('project_grants', { id: uuid('id').defaultRandom().primaryKey(), memberId: uuid('member_id').notNull().references(() => members.id), projectId: uuid('project_id').notNull(), permission: text('permission').notNull() }, t => [uniqueIndex('project_grant_unique').on(t.memberId, t.projectId, t.permission)]);
+
+export const joinCodes = pgTable('join_codes', {
+  organizationId: uuid('organization_id').primaryKey().references(() => organizations.id),
+  code: text('code').notNull().unique(),
+});
+export const joinRequests = pgTable('join_requests', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id),
+  email: text('email').notNull(),
+  status: text('status').notNull().default('pending'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, t => [uniqueIndex('join_request_org_email').on(t.organizationId,t.email), check('join_request_status',sql`${t.status} in ('pending','approved','rejected')`)]);

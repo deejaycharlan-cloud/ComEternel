@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { getDb } from '../../db/client';
 import { organizations } from '../../db/schema';
 import { projects } from '../../db/programme-schema';
-import { members, invitations, accessAudit, projectGrants } from '../../db/team-schema';
+import { members, invitations, accessAudit, projectGrants, joinCodes, joinRequests } from '../../db/team-schema';
 import { session as sessions, user } from '../../db/auth-schema';
 import { organizationInput } from '../organizations/validation';
 import { profiles } from '../preview/data';
@@ -38,6 +38,38 @@ export function teamService(db: ReturnType<typeof getDb>) {
   }
   return {
     membership,
+    async getJoinCode(actor: Actor, orgId: string) {
+      const member = await membership(actor, orgId); if (member.role !== 'admin') throw new AccessError();
+      await db.insert(joinCodes).values({ organizationId: orgId, code: randomBytes(8).toString('hex').toUpperCase() }).onConflictDoNothing();
+      const [row] = await db.select().from(joinCodes).where(eq(joinCodes.organizationId, orgId)); return row.code;
+    },
+    async requestJoin(emailInput: unknown, codeInput: unknown) {
+      const email = z.email().max(254).parse(emailInput).trim().toLowerCase();
+      const code = z.string().trim().toUpperCase().regex(/^[A-F0-9]{16}$/).parse(codeInput);
+      const [org] = await db.select().from(joinCodes).where(eq(joinCodes.code, code));
+      if (!org) return;
+      await db.insert(joinRequests).values({organizationId: org.organizationId,email}).onConflictDoNothing();
+    },
+    async listJoinRequests(actor: Actor, orgId: string) {
+      const member = await membership(actor, orgId); if (member.role !== 'admin') throw new AccessError();
+      return db.select().from(joinRequests).where(and(eq(joinRequests.organizationId,orgId),eq(joinRequests.status,'pending')));
+    },
+    async reviewJoin(actor: Actor, orgId: string, id: string, approve: boolean, input: unknown) {
+      uuid.parse(id); const grants = approve ? grantInput.parse(input) : null;
+      return adminTx(actor, orgId, async tx => {
+        const [request] = await tx.select().from(joinRequests).where(and(eq(joinRequests.id,id),eq(joinRequests.organizationId,orgId),eq(joinRequests.status,'pending'))).for('update');
+        if (!request) throw new AccessError('Demande déjà traitée ou indisponible.');
+        let result: {email:string;token:string}|null = null;
+        if (grants) {
+          const token = randomBytes(32).toString('base64url');
+          await tx.insert(invitations).values({...grants,organizationId:orgId,email:request.email,createdBy:actor.user.id,tokenHash:createHash('sha256').update(token).digest('hex'),expiresAt:new Date(Date.now()+48*60*60*1000)});
+          result = {email:request.email,token};
+        }
+        await tx.update(joinRequests).set({status:approve?'approved':'rejected'}).where(eq(joinRequests.id,id));
+        await tx.insert(accessAudit).values({organizationId:orgId,actorId:actor.user.id,action:approve?'join.approved':'join.rejected',targetId:id});
+        return result;
+      });
+    },
     async listOrganizations(actor: Actor) {
       if (!actor.user.emailVerified) throw new AccessError();
       return db.select({ id: organizations.id, name: organizations.name, timezone: organizations.timezone, role: members.role }).from(members).innerJoin(organizations, eq(members.organizationId, organizations.id)).where(and(eq(members.userId, actor.user.id), isNull(members.revokedAt)));

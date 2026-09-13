@@ -41,6 +41,23 @@ test('E3 : sessions réelles, lien unique, invitations, refus et départ', async
     await migrate(db, { migrationsFolder: './drizzle' });
     assert.equal(await auth.api.getSession({ headers: new Headers() }), null);
     const suffix = randomUUID();
+    const passwordEmail=`password-${suffix}@test.invalid`;
+    const signup=await auth.api.signUpEmail({body:{email:passwordEmail,name:'TEST password',password:'Synthetic-test-password-2026',callbackURL:'/compte'}});
+    userIds.push(signup.user.id);emails.push(passwordEmail);
+    await assert.rejects(auth.api.signInEmail({body:{email:passwordEmail,password:'Synthetic-test-password-2026'}}));
+    const verifyLink=letters.at(-1)!.split('\n').find(line=>line.startsWith('http'))!;
+    await auth.handler(new Request(verifyLink));
+    const passwordSession=await auth.api.signInEmail({body:{email:passwordEmail,password:'Synthetic-test-password-2026'}});
+    assert.ok(passwordSession.token);
+    await assert.rejects(auth.api.signInEmail({body:{email:passwordEmail,password:'Wrong-password-2026'}}));
+    await auth.api.requestPasswordReset({body:{email:passwordEmail,redirectTo:'/nouveau-mot-de-passe'}});
+    const resetLink=letters.at(-1)!.split('\n').find(line=>line.startsWith('http'))!;
+    const resetToken=new URL(resetLink).pathname.split('/').at(-1)!;
+    await auth.api.resetPassword({body:{token:resetToken,newPassword:'Replacement-test-password-2026'}});
+    await assert.rejects(auth.api.resetPassword({body:{token:resetToken,newPassword:'Another-test-password-2026'}}));
+    await assert.rejects(auth.api.signInEmail({body:{email:passwordEmail,password:'Synthetic-test-password-2026'}}));
+    assert.ok((await auth.api.signInEmail({body:{email:passwordEmail,password:'Replacement-test-password-2026'}})).token);
+
     const a = await login(`a-${suffix}@test.invalid`); const b = await login(`b-${suffix}@test.invalid`); const c = await login(`c-${suffix}@test.invalid`);
     const reused = await auth.handler(verificationRequest(a.link)); assert.equal(cookieOf(reused).includes('session_token='), false);
     const expired = await requestLink(a.actor.user.email);
@@ -60,6 +77,21 @@ test('E3 : sessions réelles, lien unique, invitations, refus et départ', async
 
     await assert.rejects(service.listMembers(a.actor, orgB.id));
     await assert.rejects(service.invite(a.actor, orgB.id, { email: c.actor.user.email, role: 'member', professions: [], permissions: [] }));
+    const codeA=await service.getJoinCode(a.actor,orgA.id);
+    assert.equal(await service.getJoinCode(a.actor,orgA.id),codeA);
+    await assert.rejects(service.getJoinCode(b.actor,orgA.id));
+    await service.requestJoin(c.actor.user.email,codeA);
+    await service.requestJoin(c.actor.user.email,codeA);
+    const requests=await service.listJoinRequests(a.actor,orgA.id); assert.equal(requests.length,1);
+    assert.equal((await service.listJoinRequests(b.actor,orgB.id)).length,0);
+    await assert.rejects(service.membership(c.actor,orgA.id));
+    await assert.rejects(service.reviewJoin(b.actor,orgA.id,requests[0].id,true,{role:'admin',professions:[],permissions:[]}));
+    const approved=await service.reviewJoin(a.actor,orgA.id,requests[0].id,true,{role:'member',professions:['photographe'],permissions:['project.read']});
+    assert.ok(approved?.token);
+    await assert.rejects(service.membership(c.actor,orgA.id));
+    await assert.rejects(service.accept(b.actor,approved.token));
+    await assert.rejects(service.reviewJoin(a.actor,orgA.id,requests[0].id,true,{role:'admin',professions:[],permissions:[]}));
+    assert.equal((await service.listJoinRequests(a.actor,orgA.id)).length,0);
     const old: Actor = { ...a.actor, session: { createdAt: new Date(Date.now() - 600_000) } };
     await assert.rejects(service.invite(old, orgA.id, { email: c.actor.user.email, role: 'member', professions: [], permissions: [] }));
     const invitation = await service.invite(a.actor, orgA.id, { email: c.actor.user.email, role: 'member', professions: ['validation', 'photographe'], permissions: ['project.read'] });
@@ -103,6 +135,8 @@ test('E3 : sessions réelles, lien unique, invitations, refus et départ', async
     assert.equal(await auth.api.getSession({ headers: new Headers({ cookie: b.cookie }) }), null);
   } finally {
     if (orgIds.length) {
+      await db.delete(team.joinRequests).where(inArray(team.joinRequests.organizationId,orgIds));
+      await db.delete(team.joinCodes).where(inArray(team.joinCodes.organizationId,orgIds));
       const ms = await db.select({ id: team.members.id }).from(team.members).where(inArray(team.members.organizationId, orgIds));
       if (ms.length) await db.delete(team.projectGrants).where(inArray(team.projectGrants.memberId, ms.map(m => m.id)));
       await db.delete(programme.projects).where(inArray(programme.projects.organizationId, orgIds));
