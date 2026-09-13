@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { getDb } from '../../db/client';
 import { organizations } from '../../db/schema';
 import { projects } from '../../db/programme-schema';
-import { members, invitations, accessAudit, projectGrants, joinCodes, joinRequests } from '../../db/team-schema';
+import { members, invitations, accessAudit, projectGrants, joinCodes, joinRequests, accountDeletions } from '../../db/team-schema';
 import { session as sessions, user } from '../../db/auth-schema';
 import { organizationInput } from '../organizations/validation';
 import { profiles } from '../preview/data';
@@ -77,6 +77,8 @@ export function teamService(db: ReturnType<typeof getDb>) {
     async createOrganization(actor: Actor, input: unknown) {
       requireFresh(actor); if (!canCreateTeam(actor.user)) throw new AccessError('Vérifiez votre adresse email avant de créer votre association.'); const value = organizationInput.parse(input);
       return db.transaction(async tx => {
+        await tx.select().from(user).where(eq(user.id,actor.user.id)).for('update');
+        if((await tx.select().from(accountDeletions).where(eq(accountDeletions.userId,actor.user.id))).length)throw new AccessError('Annulez la suppression de votre compte avant de créer une association.');
         const [org] = await tx.insert(organizations).values(value).returning();
         await tx.insert(members).values({ organizationId: org.id, userId: actor.user.id, role: 'admin', professions: ['administrateur'], permissions: [] });
         await tx.insert(accessAudit).values({ organizationId: org.id, actorId: actor.user.id, action: 'organization.created' });

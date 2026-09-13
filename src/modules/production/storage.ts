@@ -1,5 +1,5 @@
-import {S3Client,PutObjectCommand,GetObjectCommand} from '@aws-sdk/client-s3';
-import { mkdir,readFile,writeFile,rename } from 'node:fs/promises';
+import {S3Client,PutObjectCommand,GetObjectCommand,DeleteObjectCommand} from '@aws-sdk/client-s3';
+import { mkdir,readFile,writeFile,rename,rm } from 'node:fs/promises';
 import path from 'node:path';
 import {randomUUID,createHash} from 'node:crypto';
 export function hash(data:string|Uint8Array){return createHash('sha256').update(data).digest('hex');}
@@ -10,3 +10,5 @@ export async function store(key:string,bytes:Uint8Array){if(process.env.STORAGE_
 export async function read(key:string){if(process.env.STORAGE_DRIVER==='s3'){target(key);if(!process.env.S3_BUCKET)throw new Error('Stockage S3 non configuré');const object=await s3().send(new GetObjectCommand({Bucket:process.env.S3_BUCKET,Key:key}));if(!object.Body)throw new Error('Fichier manquant');return Buffer.from(await object.Body.transformToByteArray());}return readFile(/* turbopackIgnore: true */ target(key));}
 export const MAX_FILE=100*1024*1024,CHUNK=2*1024*1024;
 export function detected(bytes:Buffer){if(bytes.subarray(0,3).equals(Buffer.from([255,216,255])))return 'image/jpeg';if(bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])))return 'image/png';if(bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WEBP')return 'image/webp';if(bytes.toString('ascii',4,8)==='ftyp')return 'video/mp4';if(bytes.toString('ascii',0,5)==='%PDF-')return 'application/pdf';return null;}
+
+export async function removeStored(key:string){const p=target(key);if(process.env.STORAGE_DRIVER==='s3'){if(!process.env.S3_BUCKET)throw new Error('Stockage absent');await s3().send(new DeleteObjectCommand({Bucket:process.env.S3_BUCKET,Key:key}));}else await rm(p,{force:true});}

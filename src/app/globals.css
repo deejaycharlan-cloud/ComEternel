@@ -357,3 +357,11 @@ footer { max-width: 1440px; padding: 23px 36px; border-color: var(--line); align
 .join-association { margin-top: 24px; }
 .password-help { font-size: 13px; color: var(--muted); margin-top: -4px; }
 button:disabled { cursor: not-allowed; opacity: .45; box-shadow: none; }
+.form-feedback:not(:empty) { padding: 14px 16px; border: 1px solid #d5bba0; border-radius: 10px; background: #fff4e5; color: #714722; }
+.editorial-month { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); min-width:650px; }
+.editorial-day-name { padding:10px; background:var(--primary-soft); text-align:center; }
+.editorial-day { min-height:110px; padding:8px; border:1px solid var(--line); }
+.editorial-day time { font-size:13px; }
+.editorial-entry { display:block; margin-top:6px; padding:7px; border-radius:6px; background:#e3f3eb; font-size:12px; text-decoration:none; }
+.editorial-entry span { display:block; color:var(--muted); }
+.editorial-entry:hover { background:#cbe9da; }

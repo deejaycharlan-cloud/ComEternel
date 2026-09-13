@@ -6,7 +6,7 @@ import { magicLink } from 'better-auth/plugins';
 import { getDb } from '../../db/client';
 import * as schema from '../../db/auth-schema';
 import { sendMail } from './mail';
-import { validatePublicDeployment } from '../../config/deployment';
+import { mailConfig, validatePublicDeployment } from '../../config/deployment';
 export function createAuth(db: ReturnType<typeof getDb>, send = sendMail) {
   validatePublicDeployment();
   const secret = process.env.BETTER_AUTH_SECRET;
@@ -16,6 +16,9 @@ export function createAuth(db: ReturnType<typeof getDb>, send = sendMail) {
     database: drizzleAdapter(db, { provider: 'pg', schema, transaction: true }),
     logger: { disabled: true },
     hooks: { before: createAuthMiddleware(async ctx => {
+      if (send === sendMail && ['/sign-up/email','/request-password-reset','/sign-in/magic-link'].includes(ctx.path)) {
+        try { mailConfig(); } catch { throw new APIError('SERVICE_UNAVAILABLE', { message: 'Le service email est indisponible. Utilisez Google ou réessayez après son activation.' }); }
+      }
       const field = ctx.path === '/sign-up/email' || ctx.path === '/set-password' ? 'password'
         : ['/reset-password', '/change-password'].includes(ctx.path) ? 'newPassword' : null;
       if (field && (typeof ctx.body?.[field] !== 'string' || !validPassword(ctx.body[field]))) {
@@ -28,7 +31,7 @@ export function createAuth(db: ReturnType<typeof getDb>, send = sendMail) {
       sendVerificationEmail: async ({ user, url }) => { await send(user.email, 'Vérifier votre adresse ComÉternel', `Confirmez votre adresse email avec ce lien personnel.\n\n${url}`); } },
     account: { accountLinking: { enabled: false }, encryptOAuthTokens: true },
     session: { expiresIn: 60 * 60 * 24, freshAge: 300, cookieCache: { enabled: false } },
-    socialProviders: process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? { google: { clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET } } : {},
+    socialProviders: process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? { google: { prompt: 'select_account', clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET } } : {},
     rateLimit: { enabled: true, storage: 'database', window: 60, max: 60, customRules: { '/sign-in/magic-link': { window: 60, max: 3 }, '/sign-in/email': { window: 60, max: 10 }, '/sign-up/email': { window: 60, max: 3 }, '/request-password-reset': { window: 60, max: 3 } } },
     plugins: [magicLink({ expiresIn: 300, storeToken: 'hashed', sendMagicLink: async ({ email, url }) => { await send(email, 'Votre lien de connexion', `Ce lien personnel expire dans 5 minutes et ne sert qu'une fois.\n\n${url}`); } })],
   });

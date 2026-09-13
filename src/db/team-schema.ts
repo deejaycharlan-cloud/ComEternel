@@ -31,3 +31,17 @@ export const googleCalendars = pgTable('google_calendars', {
  refreshToken: text('refresh_token').notNull(), calendarId: text('calendar_id').notNull(),
  status: text('status').notNull().default('pending'), lastSyncedAt: timestamp('last_synced_at',{withTimezone:true}),
 });
+
+export const accountDeletions = pgTable('account_deletions', {
+ userId: text('user_id').primaryKey().references(()=>user.id),
+ dueAt: timestamp('due_at',{withTimezone:true}).notNull(),
+ status: text('status').notNull().default('pending'),
+});
+export const organizationDeletions = pgTable('organization_deletions', {
+ organizationId: uuid('organization_id').primaryKey().references(()=>organizations.id),
+ requestedBy: text('requested_by').notNull().references(()=>user.id),
+ dueAt: timestamp('due_at',{withTimezone:true}).notNull(),
+});
+export const erasedFiles = pgTable('erased_files', {
+ key: text('key').primaryKey(),
+});
