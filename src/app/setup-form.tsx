@@ -10,7 +10,7 @@ export function SetupForm() {
     <label htmlFor="name">Nom de l’espace</label>
     <input id="name" name="name" value={name} onChange={e => setName(e.target.value)} required minLength={2} maxLength={120} placeholder="Nom de votre association" />
     <TimezoneField label="Fuseau horaire de l’association"/>
-    <button disabled={pending || state.status === 'success'}>{pending ? 'Enregistrement…' : state.status === 'success' ? 'Espace enregistré' : 'Créer l’espace local'}</button>
+    <button disabled={pending || state.status === 'success'}>{pending ? 'Enregistrement…' : state.status === 'success' ? 'Espace enregistré' : 'Créer mon association'}</button>
     <p role={state.status === 'error' ? 'alert' : 'status'}>{state.message}</p>
   </form>;
 }

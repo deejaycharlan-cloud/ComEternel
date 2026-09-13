@@ -54,6 +54,10 @@ test('E3 : sessions réelles, lien unique, invitations, refus et départ', async
     const orgA = await service.createOrganization(a.actor, { name: 'TEST organisation A', timezone: 'UTC' }); orgIds.push(orgA.id);
     const orgB = await service.createOrganization(b.actor, { name: 'TEST organisation B', timezone: 'Europe/Paris' }); orgIds.push(orgB.id);
     assert.deepEqual((await service.listOrganizations(a.actor)).map(o => o.id), [orgA.id]);
+    assert.equal((await service.membership(a.actor, orgA.id)).role, 'admin');
+    assert.equal((await service.membership(b.actor, orgB.id)).role, 'admin');
+    await assert.rejects(service.createOrganization({ ...c.actor, user: { ...c.actor.user, emailVerified: false } }, { name: 'TEST refus', timezone: 'UTC' }));
+
     await assert.rejects(service.listMembers(a.actor, orgB.id));
     await assert.rejects(service.invite(a.actor, orgB.id, { email: c.actor.user.email, role: 'member', professions: [], permissions: [] }));
     const old: Actor = { ...a.actor, session: { createdAt: new Date(Date.now() - 600_000) } };
@@ -63,6 +67,7 @@ test('E3 : sessions réelles, lien unique, invitations, refus et départ', async
     const accepted = await Promise.allSettled([service.accept(c.actor, invitation.token), service.accept(c.actor, invitation.token)]);
     assert.equal(accepted.filter(r => r.status === 'fulfilled').length, 1);
     const memberC = await service.membership(c.actor, orgA.id);
+    assert.equal(memberC.role, 'member');
     await assert.rejects(service.invite(c.actor, orgA.id, { email: b.actor.user.email, role: 'admin', professions: [], permissions: [] }));
     const projectA = randomUUID(), projectB = randomUUID();
     await db.insert(programme.projects).values({ id: projectA, organizationId: orgA.id, createdBy: a.actor.user.id, creationKey: randomUUID(), inputHash: 'TEST', title: 'Projet de test E3', kind: 'event', eventType: 'Test', communicationLevel: 'essential', timezone: 'UTC', startDate: '2026-09-13', endDate: '2026-09-13', allDay: true, cadence: 'none', occurrenceCount: 1 });

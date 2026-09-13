@@ -43,7 +43,7 @@ export function teamService(db: ReturnType<typeof getDb>) {
       return db.select({ id: organizations.id, name: organizations.name, timezone: organizations.timezone, role: members.role }).from(members).innerJoin(organizations, eq(members.organizationId, organizations.id)).where(and(eq(members.userId, actor.user.id), isNull(members.revokedAt)));
     },
     async createOrganization(actor: Actor, input: unknown) {
-      requireFresh(actor); if (!canCreateTeam(actor.user)) throw new AccessError('Seul le propriétaire peut créer une équipe. Demandez une invitation à votre administrateur.'); const value = organizationInput.parse(input);
+      requireFresh(actor); if (!canCreateTeam(actor.user)) throw new AccessError('Vérifiez votre adresse email avant de créer votre association.'); const value = organizationInput.parse(input);
       return db.transaction(async tx => {
         const [org] = await tx.insert(organizations).values(value).returning();
         await tx.insert(members).values({ organizationId: org.id, userId: actor.user.id, role: 'admin', professions: ['administrateur'], permissions: [] });

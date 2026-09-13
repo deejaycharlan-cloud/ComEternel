@@ -15,7 +15,7 @@ La connexion utilise Better Auth. Supabase peut fournir la base et le stockage ;
 
 Recopier les noms de `.env.example` dans les variables Vercel, en remplaçant les exemples locaux. Ne jamais publier les secrets dans GitHub.
 
-Configurer `COMETERNEL_DEPLOYMENT=public`, `OWNER_EMAIL` avec l'adresse vérifiée du propriétaire, `BETTER_AUTH_URL` avec l'origine HTTPS finale, `BETTER_AUTH_SECRET` avec un secret aléatoire d'au moins 32 caractères, `DATABASE_URL`, les variables SMTP et S3 indiquées dans l'exemple.
+Configurer `COMETERNEL_DEPLOYMENT=public`, `BETTER_AUTH_URL` avec l'origine HTTPS finale, `BETTER_AUTH_SECRET` avec un secret aléatoire d'au moins 32 caractères, `DATABASE_URL`, les variables SMTP et S3 indiquées dans l'exemple.
 
 Pour Google, définir `GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET` et autoriser le callback `https://VOTRE-DOMAINE/api/auth/callback/google` dans Google Cloud.
 
@@ -23,7 +23,7 @@ Exécuter les migrations avec `npm run db:migrate:public` dans un environnement 
 
 ## Administration
 
-Seul le compte vérifié correspondant à `OWNER_EMAIL` peut initialiser une équipe en production. Les administrateurs invitent ensuite les membres et attribuent leurs permissions. Aucun compte administrateur partagé n'est fourni.
+Chaque compte vérifié par Google ou lien email peut créer une association et devient administrateur uniquement de cette nouvelle association. Les administrateurs invitent ensuite les membres et attribuent leurs permissions. Aucun compte administrateur partagé n'est fourni.
 
 ## Validation avant ouverture
 
