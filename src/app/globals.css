@@ -344,3 +344,16 @@ footer { max-width: 1440px; padding: 23px 36px; border-color: var(--line); align
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+/* Accueil : paysage discret et mouvement limité au survol. */
+.welcome-hero::before { content: ""; position: absolute; inset: 0; z-index: -1; background: url('/images/jardin-eden.svg') center / cover no-repeat; opacity: .16; pointer-events: none; }
+.welcome-values > article { transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease; }
+.welcome-values .navigation-icon { transition: transform .25s ease; }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .welcome-values > article:hover { transform: translateY(-6px); box-shadow: 0 14px 30px rgb(23 63 50 / 12%); border-color: #9fbdab; }
+  .welcome-values > article:hover .navigation-icon { transform: rotate(-7deg) scale(1.1); }
+}
+@media (prefers-reduced-motion: reduce) { .welcome-values > article, .welcome-values .navigation-icon { transition: none; } }
+.join-association { margin-top: 24px; }
+.password-help { font-size: 13px; color: var(--muted); margin-top: -4px; }
+button:disabled { cursor: not-allowed; opacity: .45; box-shadow: none; }

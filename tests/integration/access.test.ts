@@ -42,20 +42,24 @@ test('E3 : sessions réelles, lien unique, invitations, refus et départ', async
     assert.equal(await auth.api.getSession({ headers: new Headers() }), null);
     const suffix = randomUUID();
     const passwordEmail=`password-${suffix}@test.invalid`;
-    const signup=await auth.api.signUpEmail({body:{email:passwordEmail,name:'TEST password',password:'Synthetic-test-password-2026',callbackURL:'/compte'}});
+    await assert.rejects(auth.api.signUpEmail({body:{email:passwordEmail,name:'TEST password',password:'abcdef',callbackURL:'/compte'}}));
+    await assert.rejects(auth.api.signUpEmail({body:{email:passwordEmail,name:'TEST password',password:'Ab1!x',callbackURL:'/compte'}}));
+    for (const password of ['ab1!xy', 'AB1!XY', 'Abcd!x', 'Ab1234']) await assert.rejects(auth.api.signUpEmail({body:{email:passwordEmail,name:'TEST password',password,callbackURL:'/compte'}}));
+    const signup=await auth.api.signUpEmail({body:{email:passwordEmail,name:'TEST password',password:'Ab1!xy',callbackURL:'/compte'}});
     userIds.push(signup.user.id);emails.push(passwordEmail);
-    await assert.rejects(auth.api.signInEmail({body:{email:passwordEmail,password:'Synthetic-test-password-2026'}}));
+    await assert.rejects(auth.api.signInEmail({body:{email:passwordEmail,password:'Ab1!xy'}}));
     const verifyLink=letters.at(-1)!.split('\n').find(line=>line.startsWith('http'))!;
     await auth.handler(new Request(verifyLink));
-    const passwordSession=await auth.api.signInEmail({body:{email:passwordEmail,password:'Synthetic-test-password-2026'}});
+    const passwordSession=await auth.api.signInEmail({body:{email:passwordEmail,password:'Ab1!xy'}});
     assert.ok(passwordSession.token);
     await assert.rejects(auth.api.signInEmail({body:{email:passwordEmail,password:'Wrong-password-2026'}}));
     await auth.api.requestPasswordReset({body:{email:passwordEmail,redirectTo:'/nouveau-mot-de-passe'}});
     const resetLink=letters.at(-1)!.split('\n').find(line=>line.startsWith('http'))!;
     const resetToken=new URL(resetLink).pathname.split('/').at(-1)!;
+    await assert.rejects(auth.api.resetPassword({body:{token:resetToken,newPassword:'abcdef'}}));
     await auth.api.resetPassword({body:{token:resetToken,newPassword:'Replacement-test-password-2026'}});
     await assert.rejects(auth.api.resetPassword({body:{token:resetToken,newPassword:'Another-test-password-2026'}}));
-    await assert.rejects(auth.api.signInEmail({body:{email:passwordEmail,password:'Synthetic-test-password-2026'}}));
+    await assert.rejects(auth.api.signInEmail({body:{email:passwordEmail,password:'Ab1!xy'}}));
     assert.ok((await auth.api.signInEmail({body:{email:passwordEmail,password:'Replacement-test-password-2026'}})).token);
 
     const a = await login(`a-${suffix}@test.invalid`); const b = await login(`b-${suffix}@test.invalid`); const c = await login(`c-${suffix}@test.invalid`);

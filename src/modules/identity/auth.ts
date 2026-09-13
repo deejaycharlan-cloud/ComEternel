@@ -1,4 +1,6 @@
 import { betterAuth } from 'better-auth';
+import { APIError, createAuthMiddleware } from 'better-auth/api';
+import { validPassword, passwordHint } from './password';
 import { drizzleAdapter } from '@better-auth/drizzle-adapter';
 import { magicLink } from 'better-auth/plugins';
 import { getDb } from '../../db/client';
@@ -13,7 +15,14 @@ export function createAuth(db: ReturnType<typeof getDb>, send = sendMail) {
     appName: 'ComÉternel', baseURL: process.env.BETTER_AUTH_URL || 'http://127.0.0.1:3100', secret,
     database: drizzleAdapter(db, { provider: 'pg', schema, transaction: true }),
     logger: { disabled: true },
-    emailAndPassword: { enabled: true, minPasswordLength: 12, maxPasswordLength: 128, requireEmailVerification: true, revokeSessionsOnPasswordReset: true,
+    hooks: { before: createAuthMiddleware(async ctx => {
+      const field = ctx.path === '/sign-up/email' || ctx.path === '/set-password' ? 'password'
+        : ['/reset-password', '/change-password'].includes(ctx.path) ? 'newPassword' : null;
+      if (field && (typeof ctx.body?.[field] !== 'string' || !validPassword(ctx.body[field]))) {
+        throw new APIError('BAD_REQUEST', { message: passwordHint });
+      }
+    }) },
+    emailAndPassword: { enabled: true, minPasswordLength: 6, maxPasswordLength: 128, requireEmailVerification: true, revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => { await send(user.email, 'Réinitialiser votre mot de passe ComÉternel', `Utilisez ce lien personnel pour choisir un nouveau mot de passe.\n\n${url}`); } },
     emailVerification: { sendOnSignUp: true, sendOnSignIn: true, autoSignInAfterVerification: true,
       sendVerificationEmail: async ({ user, url }) => { await send(user.email, 'Vérifier votre adresse ComÉternel', `Confirmez votre adresse email avec ce lien personnel.\n\n${url}`); } },
