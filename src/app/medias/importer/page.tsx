@@ -1,0 +1,5 @@
+import {programmeContext,MissingSpace} from '../../../modules/programme/context';
+import {programmeService} from '../../../modules/programme/service';
+import {Uploader} from '../../../components/uploader';
+export const dynamic='force-dynamic';export const metadata={title:'Importer des fichiers'};
+export default async function Page({searchParams}:{searchParams:Promise<{organisation?:string}>}){const {actor,db,org}=await programmeContext((await searchParams).organisation);if(!org)return <MissingSpace/>;const service=programmeService(db);const ps=(await service.list(actor,org.id)).filter(p=>p.status==='preparation');const targets=[];for(const p of ps){const d=await service.get(actor,org.id,p.id);targets.push({id:p.id,title:p.title,events:d.events.filter(e=>e.status!=='cancelled')});}return <><section className="page-title"><h1>Importer des fichiers</h1><p>Vous pouvez suspendre puis reprendre en sélectionnant le même fichier.</p></section><section className="card"><Uploader organizationId={org.id} projects={targets}/></section></>;}

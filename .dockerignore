@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.env*
+.private-media*
+.backups
+*.dump
+*.tsbuildinfo
+.DS_Store
+.agents
+.github
+docs
+tests
+n8nac-config.json

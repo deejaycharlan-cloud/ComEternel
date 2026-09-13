@@ -1,0 +1,15 @@
+'use client';
+import { useActionState, useState } from 'react';
+import { teamAction } from './actions';
+import { profiles } from '../../modules/preview/data';
+const permissionLabels = { 'project.read': 'Consulter les projets autorisés', 'project.edit': 'Modifier les projets autorisés', 'content.validate': 'Valider les contenus autorisés' };
+export function TeamForm({ organizationId, operation, id, initial }: { organizationId: string; operation: string; id?: string; initial?: { role: string; professions: string[]; permissions: string[] } }) {
+  const [state, action, pending] = useActionState(teamAction, { status: 'idle' as const, message: '' });
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState(initial?.role || 'member');
+  const [professions, setProfessions] = useState(initial?.professions || []);
+  const [permissions, setPermissions] = useState(initial?.permissions || []);
+  const toggle = (items: string[], key: string) => items.includes(key) ? items.filter(x => x !== key) : [...items, key];
+  const grants = operation === 'invite' || operation === 'update-member';
+  return <form action={action}><input type="hidden" name="organizationId" value={organizationId}/><input type="hidden" name="operation" value={operation}/>{id && <input type="hidden" name="id" value={id}/>}{operation === 'invite' && <label>Adresse de la personne<input name="email" type="email" required autoComplete="off" value={email} onChange={e => setEmail(e.target.value)}/></label>}{grants && <><label>Niveau d’administration<select name="role" value={role} onChange={e => setRole(e.target.value)}><option value="member">Membre</option><option value="admin">Administrateur</option></select></label><fieldset><legend>Métiers (présentation du travail)</legend>{Object.entries(profiles).map(([key, value]) => <label className="check-label" key={key}><input type="checkbox" name="professions" value={key} checked={professions.includes(key)} onChange={() => setProfessions(toggle(professions, key))}/>{value.label}</label>)}</fieldset><fieldset><legend>Permissions distinctes</legend>{Object.entries(permissionLabels).map(([key, value]) => <label className="check-label" key={key}><input type="checkbox" name="permissions" value={key} checked={permissions.includes(key)} onChange={() => setPermissions(toggle(permissions, key))}/>{value}</label>)}<p className="hint">Les accès à chaque projet seront attribués dans le module Programme. Administrateur n’accorde aucun droit de validation implicite.</p></fieldset></>}{operation === 'remove-member' && <label className="check-label"><input type="checkbox" required/>Confirmer le retrait d’accès et la révocation des sessions de cette personne.</label>}<button disabled={pending || state.status === 'success'}>{pending ? 'En cours…' : operation === 'invite' ? 'Créer l’invitation' : operation === 'update-member' ? 'Enregistrer les accès' : operation === 'remove-member' ? 'Retirer l’accès' : 'Révoquer l’invitation'}</button><p role={state.status === 'error' ? 'alert' : 'status'}>{state.message}</p></form>;
+}

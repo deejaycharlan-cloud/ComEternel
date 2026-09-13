@@ -1,0 +1,10 @@
+import {mkdir,cp,writeFile,chmod} from 'node:fs/promises';
+import {createWriteStream} from 'node:fs';
+import {spawn} from 'node:child_process';
+import path from 'node:path';
+const url=new URL(process.env.DATABASE_URL||'');
+if(!['localhost','127.0.0.1'].includes(url.hostname)||url.pathname!=='/cometernel')throw new Error('Cette procédure est réservée à la base locale cometernel.');
+if(process.env.STORAGE_DRIVER==='s3')throw new Error('Sauvegardez aussi le bucket S3 avec son outil de sauvegarde dédié.');
+const output=path.resolve('.backups',`complete-${new Date().toISOString().replace(/[:.]/g,'-')}`);await mkdir(output,{recursive:true,mode:0o700});
+const file=createWriteStream(path.join(output,'database.dump'),{mode:0o600,flags:'wx'});const child=spawn('docker',['compose','exec','-T','db','pg_dump','-U','cometernel','-d','cometernel','-Fc'],{stdio:['ignore','pipe','inherit']});child.stdout.pipe(file);await new Promise<void>((resolve,reject)=>{child.on('error',reject);child.on('exit',code=>code===0?resolve():reject(new Error('Sauvegarde base impossible')));});await new Promise<void>((resolve,reject)=>{if(file.closed)resolve();else{file.on('close',resolve);file.on('error',reject);}});
+const storage=path.resolve(process.env.PRIVATE_STORAGE_PATH||'.private-media');await mkdir(storage,{recursive:true,mode:0o700});await cp(storage,path.join(output,'media'),{recursive:true,errorOnExist:true});await chmod(path.join(output,'media'),0o700);await writeFile(path.join(output,'README.txt'),'Sauvegarde locale complète. Conserver les secrets de configuration séparément. Ne pas publier ce dossier. Restauration dans une nouvelle base uniquement.\n',{mode:0o600});console.log(output);

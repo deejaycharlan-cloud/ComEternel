@@ -1,0 +1,7 @@
+import {currentSession} from '../../../modules/identity/session';
+import {getDb} from '../../../db/client';
+import {teamService} from '../../../modules/team/service';
+import {workService} from '../../../modules/work/service';
+import {mediaService} from '../../../modules/production/media-service';
+import {contentService} from '../../../modules/production/content-service';
+export async function GET(r:Request){try{const actor=await currentSession();if(!actor)return new Response('Connexion requise',{status:401});const org=new URL(r.url).searchParams.get('organisation')||'';const db=getDb(),membership=await teamService(db).membership(actor,org);if(membership.role!=='admin')return new Response('Accès refusé',{status:403});const work=await workService(db).list(actor,org),files=await mediaService(db).list(actor,org),service=contentService(db),contents=await service.list(actor,org);const details=[];for(const c of contents.items)details.push(await service.get(actor,org,c.id));return new Response(JSON.stringify({exportedAt:new Date().toISOString(),scope:'Projets accessibles à cet administrateur uniquement ; métadonnées sans fichiers binaires, sans jetons de collecte ni secrets de connexion.',projects:work.projects,tasks:work.tasks,media:files.media.map(({storageKey,uploadKey,...m})=>m),contents:details},null,2),{headers:{'Content-Type':'application/json','Content-Disposition':'attachment; filename="export-cometernel.json"','Cache-Control':'private, no-store'}});}catch{return new Response('Export indisponible',{status:403});}}

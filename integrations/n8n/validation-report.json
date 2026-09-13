@@ -1,0 +1,25 @@
+{
+  "date": "2026-09-13",
+  "scope": "offline draft only",
+  "workflow": "ComÉternel · Tester un transfert Drive",
+  "artifacts": [
+    { "file": "cometernel-drive-test.json", "validator": "n8n-as-code bundled schema", "valid": true, "errors": [], "warnings": [] },
+    { "file": "cometernel-drive-test.workflow.ts.template", "validator": "n8n-as-code bundled schema", "valid": true, "errors": [], "warnings": [] }
+  ],
+  "localTests": { "command": "node --test integrations/n8n/workflow.test.mjs", "passed": 8, "failed": 0 },
+  "contractJsonParsed": true,
+  "liveInstanceSchemaVerified": false,
+  "remoteImportPerformed": false,
+  "workflowActivated": false,
+  "googleCredentialVerified": false,
+  "fileTransferredToGoogle": false,
+  "realN8nBinaryTransportVerified": false,
+  "blockingConfiguration": ["Selected n8n instance", "Association Google account", "Chosen private test folder", "Application origin reachable from n8n", "Service and OAuth credentials"],
+  "notes": [
+    "Source guard disabled and application origin empty by default.",
+    "Only a manual single-job test is included; maximum file size 5 MiB.",
+    "Native n8n MCP assist reports disabled and not configured.",
+    "Offline n8nac CLI bootstrap failed because the package was not cached; offline MCP schema tools were used instead.",
+    "Static tests cover branch decisions and wiring; they do not simulate n8n runtime or Google API responses."
+  ]
+}

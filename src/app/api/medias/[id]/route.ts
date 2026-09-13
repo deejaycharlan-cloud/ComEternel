@@ -1,0 +1,4 @@
+import {currentSession} from '../../../../modules/identity/session';
+import {getDb} from '../../../../db/client';
+import {mediaService} from '../../../../modules/production/media-service';
+export async function GET(request:Request,{params}:{params:Promise<{id:string}>}){try{const actor=await currentSession();if(!actor)return new Response('Connexion requise',{status:401});const {m,bytes}=await mediaService(getDb()).download(actor,new URL(request.url).searchParams.get('organisation')||'',(await params).id);return new Response(new Uint8Array(bytes),{headers:{'Content-Type':'application/octet-stream','Content-Disposition':`attachment; filename*=UTF-8''${encodeURIComponent(m.name)}`,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});}catch{return new Response('Fichier indisponible ou accès refusé',{status:403});}}

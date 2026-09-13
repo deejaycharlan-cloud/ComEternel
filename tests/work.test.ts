@@ -1,0 +1,6 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {planPack,hasCycle} from '../src/modules/work/planning';
+import {requestTransitions,taskTransitions} from '../src/modules/work/models';
+test('E5 : trois packs, vidéo facultative et décalage cohérent',()=>{const a=planPack('essential','2026-09-15','2026-09-13',true,1,1,null);assert.equal(a.shiftedDays,19);assert.equal(a.rows[0].dueDate,'2026-09-13');assert.equal(a.rows[0].originalDueDate,'2026-08-25');const b=planPack('standard','2026-10-30','2026-09-13',true,1,1,null);assert.equal(b.shiftedDays,0);const c=planPack('extended','2026-09-15','2026-09-13',false,1,1,null);assert.ok(a.rows.length<b.rows.length&&b.rows.length<c.rows.length);assert.equal(c.rows.find(r=>r.key==='video')?.selected,false);assert.equal(c.rows[0].dueDate,'2026-08-25');});
+test('E5 : transitions explicites et dépendances sans boucle',()=>{assert.deepEqual(requestTransitions.accepted,['deferred']);assert.ok(!taskTransitions.todo.includes('done'));assert.equal(hasCycle([{taskId:'a',dependsOnId:'b'},{taskId:'b',dependsOnId:'c'}]),false);assert.equal(hasCycle([{taskId:'a',dependsOnId:'b'},{taskId:'b',dependsOnId:'a'}]),true);assert.equal(hasCycle([{taskId:'a',dependsOnId:'a'}]),true);});
