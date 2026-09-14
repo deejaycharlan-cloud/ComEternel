@@ -367,3 +367,18 @@ button:disabled { cursor: not-allowed; opacity: .45; box-shadow: none; }
 .editorial-entry:hover { background:#cbe9da; }
 
 .account-menu { margin-left: auto; }
+/* Aide et recherche des rubriques. */
+.page-search { position: relative; margin-left: auto; }
+.page-search > summary { list-style: none; border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; background: white; white-space: nowrap; }
+.page-search > summary::-webkit-details-marker { display: none; }
+.page-search-panel { position: absolute; z-index: 60; right: 0; top: calc(100% + 10px); width: min(400px, calc(100vw - 32px)); padding: 20px; background: white; border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 35px rgb(23 63 50 / 18%); }
+.page-search-panel label { margin-top: 0; }
+.page-search-panel nav { max-height: 45dvh; overflow-y: auto; }
+.page-search-panel nav a { display: block; padding: 12px; min-height: 44px; border-radius: 8px; font-size: 14px; text-decoration: none; }
+.page-search-panel nav a:hover { background: var(--primary-soft); }
+.page-search + .account-menu { margin-left: 0; }
+.help-guide > .card { margin-bottom: 22px; scroll-margin-top: 20px; }
+.help-guide li { margin-bottom: 12px; }
+.help-index a { display: block; padding: 10px 0; }
+@media(max-width:700px){.page-search > summary { padding: 9px; font-size: 12px; }.app-header:has(.page-search) .workspace-identity { display: none; }.page-search-panel { position: fixed; left: 16px; right: 16px; top: 90px; width: auto; }}
+@media print {.help-guide .card { box-shadow:none; break-inside:avoid; }.app-header,.primary-nav,.skip,footer { display:none!important; }.workspace { display:block; }.workspace main { padding:0; }.help-guide .help-index { break-after:page; }}
