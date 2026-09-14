@@ -102,6 +102,9 @@ test('E3 : sessions réelles, lien unique, invitations, refus et départ', async
     await assert.rejects(service.membership(c.actor,orgA.id));
     await assert.rejects(service.reviewJoin(b.actor,orgA.id,requests[0].id,true,{role:'admin',professions:[],permissions:[]}));
     const approved=await service.reviewJoin(a.actor,orgA.id,requests[0].id,true,{role:'member',professions:['photographe'],permissions:['project.read']});
+    assert.deepEqual(await service.invitationDetails(approved!.token),{email:c.actor.user.email,organizationName:orgA.name});
+    assert.equal(await service.invitationDetails('invalid'),null);
+
     assert.ok(approved?.token);
     const outgoing:{to:string;body:string}[]=[];
     assert.equal(await deliverInvitation(db,a.actor.user.id,orgA.id,approved,async(to,_subject,body)=>{outgoing.push({to,body});}),true);
@@ -111,7 +114,7 @@ test('E3 : sessions réelles, lien unique, invitations, refus et départ', async
     assert.ok(mailAudit.some(x=>x.action==='invitation.email_failed'));
     await assert.rejects(service.resendInvitation(b.actor,orgA.id,approved.id));
     const renewed=await service.resendInvitation(a.actor,orgA.id,approved.id);assert.notEqual(renewed.token,approved.token);
-    await assert.rejects(service.accept(c.actor,approved.token));
+    await assert.rejects(service.accept(c.actor,approved.token));assert.equal(await service.invitationDetails(approved.token),null);
     await assert.rejects(service.resendInvitation(a.actor,orgA.id,approved.id));
 
     await assert.rejects(service.membership(c.actor,orgA.id));
@@ -140,9 +143,9 @@ test('E3 : sessions réelles, lien unique, invitations, refus et départ', async
     await assert.rejects(service.changeMember(a.actor, orgA.id, adminA.id, null));
     await assert.rejects(service.changeMember(b.actor, orgB.id, memberC.id, null));
     const revoked = await service.invite(a.actor, orgA.id, { email: b.actor.user.email, role: 'member', professions: [], permissions: [] });
-    await service.revokeInvitation(a.actor, orgA.id, revoked.id); await assert.rejects(service.accept(b.actor, revoked.token));
+    await service.revokeInvitation(a.actor, orgA.id, revoked.id); await assert.rejects(service.accept(b.actor, revoked.token));assert.equal(await service.invitationDetails(revoked.token),null);
     const timed = await service.invite(a.actor, orgA.id, { email: b.actor.user.email, role: 'member', professions: [], permissions: [] });
-    await db.update(team.invitations).set({ expiresAt: new Date(0) }).where(eq(team.invitations.id, timed.id)); await assert.rejects(service.accept(b.actor, timed.token));
+    await db.update(team.invitations).set({ expiresAt: new Date(0) }).where(eq(team.invitations.id, timed.id)); await assert.rejects(service.accept(b.actor, timed.token));assert.equal(await service.invitationDetails(timed.token),null);
     const pendingRejoin = await service.invite(a.actor, orgA.id, { email: c.actor.user.email, role: 'member', professions: [], permissions: [] });
     await service.changeMember(a.actor, orgA.id, memberC.id, null);
     assert.equal(await auth.api.getSession({ headers: new Headers({ cookie: c.cookie }) }), null);

@@ -107,6 +107,12 @@ export function teamService(db: ReturnType<typeof getDb>) {
         return { id: invitation.id, token, email: value.email };
       });
     },
+    async invitationDetails(token:string) {
+      if(!/^[\w-]{43}$/.test(token))return null;
+      const hash=createHash('sha256').update(token).digest('hex');
+      const [row]=await db.select({email:invitations.email,organizationName:organizations.name}).from(invitations).innerJoin(organizations,eq(invitations.organizationId,organizations.id)).where(and(eq(invitations.tokenHash,hash),isNull(invitations.acceptedAt),isNull(invitations.revokedAt),gt(invitations.expiresAt,new Date())));
+      return row||null;
+    },
     async accept(actor: Actor, token: string) {
       if (!actor.user.emailVerified || !/^[\w-]{43}$/.test(token)) throw new AccessError('Invitation indisponible.');
       return db.transaction(async tx => {
