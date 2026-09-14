@@ -468,3 +468,30 @@ fieldset, input, select, textarea { min-width: 0; max-width: 100%; }
 }
 @keyframes swipe-cue { 0%,100% { transform:translateX(-3px); } 50% { transform:translateX(3px); } }
 @media(prefers-reduced-motion:reduce) { .navigation-swipe-hint { transition:none; } .swipe-gesture { animation:none; } }
+/* Compact task controls on phones: action, then scope and presentation. */
+@media(max-width:700px) {
+ .task-toolbar { grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); padding:10px; gap:8px; margin:12px 0; border-radius:12px; }
+ .task-primary-action { grid-column:1 / -1; grid-row:1; }
+ .task-primary-action .button { padding:8px 16px; font-size:14px; }
+ .task-toolbar .task-controls { gap:0; align-self:stretch; }
+ .task-toolbar .task-control-label { display:none; }
+ .task-toolbar .task-switch { flex-wrap:nowrap; gap:2px; padding:2px; }
+ .task-toolbar .task-switch a { padding:5px 4px; font-size:12px; text-align:center; line-height:1.2; }
+ .task-page-tabs { margin:12px 0; }
+ .task-list-heading { margin:12px 0 8px; }
+}
+.task-toolbar-compact { display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:12px; margin:16px 0; }
+.task-filter-selects { display:flex; gap:8px; }
+.task-filter-selects label { margin:0; min-width:0; }
+.task-filter-label { display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
+.task-filter-selects select { margin:0; min-height:44px; padding:8px 30px 8px 10px; font-size:14px; }
+.task-toolbar-compact > .button { min-height:44px; margin:0; padding:10px 16px; font-size:14px; }
+@media(max-width:700px) {
+ .task-toolbar-compact { gap:10px; margin:12px 0; }
+ .task-toolbar-compact > .button { order:-1; margin-left:auto; }
+ .task-filter-selects { width:100%; }
+ .task-filter-selects label:first-child { flex:1; }
+ .task-filter-selects label:last-child { flex:0 0 110px; }
+ .task-filter-selects select { width:100%; font-size:16px; }
+ .task-filter-label { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+}
