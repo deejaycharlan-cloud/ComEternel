@@ -441,3 +441,24 @@ fieldset, input, select, textarea { min-width: 0; max-width: 100%; }
  .app-header { position:relative; z-index:30; }
 }
 @media print { .navigation-rail,.navigation-context { display:none!important; } }
+
+/* Task actions and filters remain separate on every screen size. */
+.task-toolbar { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:20px; align-items:center; padding:20px; margin:20px 0; border:1px solid var(--line); border-radius:16px; background:white; }
+.task-controls { display:grid; gap:8px; justify-items:start; min-width:0; }
+.task-view-controls { justify-items:end; }
+.task-control-label { font-size:12px; font-weight:600; color:var(--muted); }
+.task-switch { display:flex; flex-wrap:wrap; gap:4px; padding:4px; border-radius:12px; background:var(--primary-soft); }
+.task-switch a { display:inline-flex; justify-content:center; align-items:center; min-height:44px; padding:8px 12px; border-radius:8px; text-decoration:none; font-size:14px; font-weight:600; }
+.task-switch a[aria-current=page] { background:var(--primary); color:white; }
+.task-primary-action { text-align:center; }
+.task-primary-action .button { margin:0; min-height:44px; }
+.task-list-heading { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin:20px 0 12px; }
+.task-list-heading h2 { margin:0; font-size:18px; }
+.task-list-heading a { display:inline-flex; align-items:center; min-height:44px; font-size:14px; }
+@media(max-width:1000px) {
+ .task-toolbar { grid-template-columns:1fr; gap:18px; }
+ .task-primary-action { grid-row:1; }
+ .task-controls,.task-view-controls { justify-items:center; }
+ .task-switch { justify-content:center; width:100%; }
+ .task-switch a { flex:1; }
+}
