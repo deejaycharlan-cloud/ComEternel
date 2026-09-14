@@ -22,5 +22,5 @@ export async function workAction(_:WorkState,form:FormData):Promise<WorkState>{
  else if(op==='removeAvailability')await s.removeAvailability(a,org,g('id'));else throw new AccessError();
  for(const path of ['/','/taches',`/taches/${id}`,`/projets/${p}`,`/projets/${p}/travail`])revalidatePath(path);
  return {status:'success',message:op==='preview'?'Aperçu prêt. Ouvrez-le pour vérifier les tâches avant application.':'Enregistrement confirmé.',href};
- }catch(e){return {status:'error',message:e instanceof WorkError||e instanceof AccessError?e.message:e instanceof z.ZodError?'Vérifiez les champs obligatoires, les dates et les motifs (5 caractères minimum).':'Enregistrement impossible. Vos saisies sont conservées.'};}
+ }catch(e){return {status:'error',message:e instanceof WorkError||e instanceof AccessError?e.message:e instanceof z.ZodError?'Vérifiez les champs obligatoires et les dates. Lorsqu’une explication est demandée, saisissez au moins 5 caractères.':'Enregistrement impossible. Vos saisies sont conservées.'};}
 }
