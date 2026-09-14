@@ -1,5 +1,6 @@
 import {and,eq,isNull} from 'drizzle-orm';
 import {z} from 'zod';
+import {rushWindowOpen} from './rush-window';
 import {getDb} from '../../db/client';
 import {members,projectGrants} from '../../db/team-schema';
 import {projects,occurrences} from '../../db/programme-schema';
@@ -18,3 +19,10 @@ export async function access(c:Conn,a:Actor,org:string,project:string,mode:'read
  if(!global||!scoped)throw new AccessError();return {m,p};
 }
 export async function active(c:Conn,p:typeof projects.$inferSelect,occurrenceId:string|null){if(p.status!=='preparation')throw new ProductionError('Projet annulé ou archivé : opération suspendue.');if(occurrenceId){z.uuid().parse(occurrenceId);const [e]=await c.select().from(occurrences).where(and(eq(occurrences.id,occurrenceId),eq(occurrences.projectId,p.id)));if(!e||e.status==='cancelled')throw new ProductionError('Occurrence annulée ou indisponible.');}}
+
+export async function requireRushWindow(c:Conn,p:typeof projects.$inferSelect,occurrenceId:string|null) {
+ await active(c,p,occurrenceId);
+ if(p.kind!=='event'||!occurrenceId)throw new ProductionError('Choisissez la date de l’événement capté. Pour une création préparée en amont, utilisez Contenus et livrables.');
+ const [event]=await c.select().from(occurrences).where(and(eq(occurrences.id,occurrenceId),eq(occurrences.projectId,p.id)));
+ if(!event||!rushWindowOpen(event,p.timezone))throw new ProductionError('Les rushs peuvent être déposés à partir du début de l’événement, puis après celui-ci. Les flyers et vidéos préparatoires se déposent dans Contenus et livrables.');
+}
