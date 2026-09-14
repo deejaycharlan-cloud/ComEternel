@@ -1,19 +1,20 @@
 'use client';
-import {createContext,useContext,useEffect,useRef} from 'react';
+import {createContext,useContext,useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import {usePathname,useSearchParams,useRouter} from 'next/navigation';
+import {usePathname,useSearchParams} from 'next/navigation';
 import {NavigationIcon,type NavigationIconName} from './navigation-icon';
 import {PageSearch} from './page-search';
 import type {Profile} from '../modules/preview/data';
 const PreviewContext=createContext({demo:false,profile:'coordinateur' as Profile});
 export const usePreview=()=>useContext(PreviewContext);
 export type WorkspaceViewer={name:string;spaces:{id:string;name:string;admin:boolean;pendingRequests?:number;deletionDate?:string;canRead:boolean;canCreate:boolean}[]}|null;
-export function Workspace({children,viewer,localPilot}:{children:React.ReactNode;viewer:WorkspaceViewer;localPilot:boolean}){
+export function Workspace({children,viewer:initialViewer,localPilot}:{children:React.ReactNode;viewer:WorkspaceViewer;localPilot:boolean}){
+ const [viewer,setViewer]=useState(initialViewer);
+ useEffect(()=>setViewer(initialViewer),[initialViewer]);
  const path=usePathname(),query=useSearchParams();
  const requested=query.get('organisation');
  const space=viewer?.spaces.find(s=>s.id===requested)||(requested?undefined:viewer?.spaces[0]);
- const router=useRouter();
  const accountMenu=useRef<HTMLDetailsElement>(null);
  useEffect(()=>{if(accountMenu.current)accountMenu.current.open=false;},[path,requested]);
  useEffect(()=>{
@@ -24,7 +25,12 @@ export function Workspace({children,viewer,localPilot}:{children:React.ReactNode
   document.addEventListener('keydown',closeEscape);
   return()=>{document.removeEventListener('pointerdown',closeOutside);document.removeEventListener('focusin',closeOutside);document.removeEventListener('keydown',closeEscape);};
  },[]);
- useEffect(()=>{if(!space?.admin)return;const refresh=()=>{if(document.visibilityState==='visible')router.refresh();};const timer=setInterval(refresh,60000);window.addEventListener('focus',refresh);return()=>{clearInterval(timer);window.removeEventListener('focus',refresh);};},[space?.admin,space?.id,router]);
+ useEffect(()=>{
+  if(!initialViewer)return;let lastChecked=Date.now(),pending=false;const controller=new AbortController();
+  const refresh=async()=>{if(document.visibilityState!=='visible'||pending||Date.now()-lastChecked<60000)return;pending=true;lastChecked=Date.now();try{const response=await fetch('/api/navigation',{cache:'no-store',signal:controller.signal});if(response.ok){const next=await response.json();if(!controller.signal.aborted)setViewer(next);}else if(response.status===401){window.location.assign('/connexion');}}catch{}finally{pending=false;}};
+  const timer=setInterval(()=>void refresh(),60000);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);
+  return()=>{controller.abort();clearInterval(timer);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};
+ },[initialViewer]);
  const inside=Boolean(space)&&path!=='/connexion';
  const inSpace=(href:string)=>space?`${href}?organisation=${space.id}`:href;
  const navigation:[string,string,NavigationIconName][]=[['/','Accueil','home']];

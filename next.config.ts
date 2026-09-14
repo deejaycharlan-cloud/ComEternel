@@ -2,6 +2,7 @@ import type { NextConfig } from 'next';
 const config: NextConfig = {
   turbopack: { root: process.cwd() },
   poweredByHeader: false,
+  experimental: { staleTimes: { dynamic: 30 } },
   async headers() {
     return [{ source: '/:path*', headers: [
       { key: 'X-Content-Type-Options', value: 'nosniff' },
