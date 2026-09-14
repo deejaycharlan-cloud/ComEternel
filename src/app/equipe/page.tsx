@@ -2,7 +2,7 @@ import Link from 'next/link';
 import {redirect} from 'next/navigation';
 import {and,eq,desc} from 'drizzle-orm';
 import {requireSession} from '../../modules/identity/session';
-import {teamService,requireFresh} from '../../modules/team/service';
+import {teamService,requireTeamSession} from '../../modules/team/service';
 import {getDb} from '../../db/client';
 import {accessAudit} from '../../db/team-schema';
 import {mailConfig} from '../../config/deployment';
@@ -17,7 +17,7 @@ export default async function Page({searchParams}:{searchParams:Promise<{organis
  if(!org)return <section className="card"><h1>Choisissez votre association</h1><Link href="/compte">Revenir à mon compte</Link></section>;
  if(org.role!=='admin')redirect(`/?organisation=${org.id}`);
  const [people,invites,requests,joinCode,audit]=await Promise.all([service.listMembers(actor,org.id),service.listInvitations(actor,org.id),service.listJoinRequests(actor,org.id),service.getJoinCode(actor,org.id),db.select().from(accessAudit).where(eq(accessAudit.organizationId,org.id)).orderBy(desc(accessAudit.createdAt))]);
- let fresh=true;try{requireFresh(actor);}catch{fresh=false;}
+ let fresh=true;try{requireTeamSession(actor);}catch{fresh=false;}
  let sender='Service email non configuré';try{sender=mailConfig().from;}catch{}
  const sentState=(id:string)=>audit.find(a=>a.targetId===id&&['invitation.email_sent','invitation.email_failed','invitation.resent'].includes(a.action))?.action;
  const returnTo=`/equipe?organisation=${org.id}`;

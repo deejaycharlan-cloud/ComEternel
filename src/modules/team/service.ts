@@ -19,6 +19,11 @@ export function requireFresh(actor: Actor) {
   const age = Date.now() - new Date(actor.session.createdAt).getTime();
   if (!actor.user.emailVerified || !Number.isFinite(age) || age < 0 || age > 300_000) throw new AccessError('Reconnectez-vous pour confirmer cette opération d’administration (connexion de moins de 5 minutes).');
 }
+// La gestion courante de l’équipe reste disponible pendant une journée de travail.
+export function requireTeamSession(actor: Actor) {
+ const age=Date.now()-new Date(actor.session.createdAt).getTime();
+ if(!actor.user.emailVerified||!Number.isFinite(age)||age<0||age>8*60*60*1000)throw new AccessError('Confirmez votre identité pour gérer l’équipe (connexion de moins de 8 heures).');
+}
 export function teamService(db: ReturnType<typeof getDb>) {
   async function membership(actor: Actor, orgId: string) {
     if (!actor.user.emailVerified || !uuid.safeParse(orgId).success) throw new AccessError();
@@ -27,7 +32,7 @@ export function teamService(db: ReturnType<typeof getDb>) {
     return member;
   }
   async function adminTx<T>(actor: Actor, orgId: string, work: (tx: Parameters<Parameters<typeof db.transaction>[0]>[0]) => Promise<T>) {
-    requireFresh(actor);
+    requireTeamSession(actor);
     if (!uuid.safeParse(orgId).success) throw new AccessError();
     return db.transaction(async tx => {
       await tx.select({ id: organizations.id }).from(organizations).where(eq(organizations.id, orgId)).for('update');

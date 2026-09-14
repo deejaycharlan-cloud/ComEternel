@@ -14,7 +14,7 @@ import * as team from '../../src/db/team-schema';
 import * as programme from '../../src/db/programme-schema';
 import * as work from '../../src/db/work-schema';
 import { createAuth } from '../../src/modules/identity/auth';
-import { teamService, type Actor } from '../../src/modules/team/service';
+import { teamService, requireFresh, requireTeamSession, type Actor } from '../../src/modules/team/service';
 const url = process.env.TEST_DATABASE_URL;
 if (!url || !new URL(url).pathname.endsWith('_test') || url === process.env.DATABASE_URL) throw new Error('Base de test dédiée requise.');
 const schema = { ...core, ...authSchema, ...team, ...programme, ...work, ...production };
@@ -42,6 +42,8 @@ test('E3 : sessions réelles, lien unique, invitations, refus et départ', async
   try {
     await migrate(db, { migrationsFolder: './drizzle' });
     assert.equal(await auth.api.getSession({ headers: new Headers() }), null);
+    const windowActor:Actor={user:{id:'test',email:'test@test.invalid',emailVerified:true},session:{createdAt:new Date(Date.now()-2*60*60*1000)}};
+    assert.doesNotThrow(()=>requireTeamSession(windowActor));assert.throws(()=>requireFresh(windowActor));assert.throws(()=>requireTeamSession({...windowActor,session:{createdAt:new Date(Date.now()-9*60*60*1000)}}));
     const suffix = randomUUID();
     const passwordEmail=`password-${suffix}@test.invalid`;
     await assert.rejects(auth.api.signUpEmail({body:{email:passwordEmail,name:'TEST password',password:'abcdef',callbackURL:'/compte'}}));
@@ -117,7 +119,7 @@ test('E3 : sessions réelles, lien unique, invitations, refus et départ', async
     await assert.rejects(service.reviewJoin(a.actor,orgA.id,requests[0].id,true,{role:'admin',professions:[],permissions:[]}));
     assert.equal((await service.listJoinRequests(a.actor,orgA.id)).length,0);
     await notifyJoinRequest(db,requestId,async()=>{assert.fail('Une demande traitée ne doit pas notifier');});
-    const old: Actor = { ...a.actor, session: { createdAt: new Date(Date.now() - 600_000) } };
+    const old: Actor = { ...a.actor, session: { createdAt: new Date(Date.now() - 9*60*60*1000) } };
     await assert.rejects(service.invite(old, orgA.id, { email: c.actor.user.email, role: 'member', professions: [], permissions: [] }));
     const invitation = await service.invite(a.actor, orgA.id, { email: c.actor.user.email, role: 'member', professions: ['validation', 'photographe'], permissions: ['project.read'] });
     await assert.rejects(service.accept(b.actor, invitation.token));
