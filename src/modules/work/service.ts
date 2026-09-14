@@ -16,7 +16,7 @@ import { planPack, hasCycle } from './planning';
 type DB=ReturnType<typeof getDb>;type Tx=Parameters<Parameters<DB['transaction']>[0]>[0];type Conn=DB|Tx;
 export class WorkError extends Error {}
 const reasonSchema=z.string().trim().min(5).max(1000);
-const rowSchema=z.object({key:z.string().min(1).max(100),title:z.string().trim().min(3).max(200),description:z.string().trim().max(5000).default(''),format:z.string().trim().min(2).max(100),dueDate:isoDate,assigneeId:z.uuid().nullable(),deputyId:z.uuid().nullable()});
+const rowSchema=z.object({key:z.string().min(1).max(100),title:z.string().trim().min(3).max(200),description:z.string().trim().max(5000).default(''),format:z.string().trim().max(100),dueDate:isoDate,assigneeId:z.uuid().nullable(),deputyId:z.uuid().nullable()});
 export function workService(db:DB) {
  async function membership(c:Conn,a:Actor,org:string) {z.uuid().parse(org);if(!a.user.emailVerified)throw new AccessError();const [m]=await c.select().from(members).where(and(eq(members.organizationId,org),eq(members.userId,a.user.id),isNull(members.revokedAt)));if(!m)throw new AccessError();return m;}
  async function guard(c:Conn,a:Actor,org:string,id:string,edit=false) {z.uuid().parse(id);const m=await membership(c,a,org);const [p]=await c.select().from(projects).where(and(eq(projects.id,id),eq(projects.organizationId,org)));const grants=await c.select().from(projectGrants).where(and(eq(projectGrants.memberId,m.id),eq(projectGrants.projectId,id)));if(!p || !(m.role==='admin'||m.permissions.includes('project.edit')||(!edit&&m.permissions.includes('project.read'))) || (m.role!=='admin'&&!grants.some(g=>g.permission==='project.edit'||(!edit&&g.permission==='project.read'))))throw new AccessError();return {p,m};}
