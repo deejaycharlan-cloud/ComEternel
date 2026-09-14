@@ -7,7 +7,7 @@ import {driveScope,callbackUrl,seal} from '../../../../modules/integrations/dire
 export async function POST(request:Request){try{
  if(request.headers.get('origin')!==new URL(process.env.BETTER_AUTH_URL!).origin)return new Response(null,{status:403});
  const actor=await currentSession();if(!actor)return new Response(null,{status:401});
- const data=await request.formData();const org=String(data.get('organizationId'));await calendarAdmin(actor,org);
+ const data=await request.formData();const org=String(data.get('organizationId'));if(!/^[a-f0-9-]{36}$/.test(org))throw new Error();const age=Date.now()-new Date(actor.session.createdAt).getTime();if(!Number.isFinite(age)||age<0||age>300000)return Response.redirect(`${process.env.BETTER_AUTH_URL}/connexion?retour=${encodeURIComponent(`/reglages?organisation=${org}`)}`,303);await calendarAdmin(actor,org);
  if(!process.env.GOOGLE_CLIENT_ID||!process.env.GOOGLE_CLIENT_SECRET)throw new Error();
  const state=randomBytes(32).toString('base64url'),verifier=randomBytes(32).toString('base64url');
  const id=createHash('sha256').update(state).digest('hex');

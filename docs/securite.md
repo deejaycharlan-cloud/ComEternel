@@ -9,7 +9,7 @@
 - Supabase : les 38 tables publiques existantes ont RLS activé et aucune politique publique d’accès. Les deux nouvelles tables Drive sont créées avec RLS. L’application accède aux données côté serveur avec des contrôles d’association et de rôle.
 - 12 tests unitaires et 8 scénarios d’intégration passent : sessions, invitations, refus, suppression différée, rôles, isolation entre associations, chiffrement et reprise des fichiers.
 
-## Correctifs préparés
+## Correctifs déployés
 
 - Correction de la limitation des connexions : chaque visiteur Vercel utilise son adresse vérifiée au lieu d’un compteur partagé par tous les comptes. Les en-têtes non fiables restent ignorés en local. Référence : [en-têtes Vercel](https://vercel.com/docs/headers/request-headers).
 - Ajout des en-têtes anti-encadrement, `nosniff`, politique de référent et restrictions navigateur ; suppression de l’en-tête identifiant Next.js.
@@ -27,4 +27,4 @@ Ce contrôle est une revue technique et des tests ciblés, pas un test d’intru
 
 La politique CSP ajoutée protège notamment l’encadrement, les objets et les formulaires ; ce n’est pas une politique stricte des scripts avec nonce. Les contenus utilisateurs sont affichés via React, sans insertion HTML brute identifiée lors de la revue.
 
-Restent à valider après déploiement : en-têtes effectifs, connexion OAuth Drive, gros fichiers réels, deux associations avec deux comptes Google et appareils mobiles. Aucune suppression de données de production ni rotation arbitraire de secrets n’a été effectuée pour ce contrôle.
+Les nouveaux en-têtes ont été confirmés sur la page de connexion publique (HTTP 200). La route de classement refuse un appel sans secret (HTTP 403). Restent à valider : connexion OAuth Drive, gros fichiers réels, deux associations avec deux comptes Google et appareils mobiles. Aucune suppression de données de production ni rotation arbitraire de secrets n’a été effectuée pour ce contrôle.
