@@ -20,7 +20,7 @@ export async function workAction(_:WorkState,form:FormData):Promise<WorkState>{
  else if(op==='edit')await s.edit(a,org,p,id,rev,row(),g('priority'),form.getAll('dependencies').map(String),g('reason'));
  else if(op==='availability')await s.availability(a,org,{startDate:g('startDate'),endDate:g('endDate'),capacity:g('capacity'),note:g('note')});
  else if(op==='removeAvailability')await s.removeAvailability(a,org,g('id'));else throw new AccessError();
- for(const path of ['/','/taches',`/taches/${id}`,`/projets/${p}`,`/projets/${p}/travail`])revalidatePath(path);
+ for(const path of ['/','/taches','/taches/disponibilites',`/taches/${id}`,`/projets/${p}`,`/projets/${p}/travail`])revalidatePath(path);
  return {status:'success',message:op==='create'?'Tâche créée. Ouverture de sa fiche…':op==='preview'?'Aperçu prêt. Ouvrez-le pour vérifier les tâches avant application.':'Enregistrement confirmé.',href};
  }catch(e){return {status:'error',message:e instanceof WorkError||e instanceof AccessError?e.message:e instanceof z.ZodError?'Vérifiez les champs obligatoires et les dates. Lorsqu’une explication est demandée, saisissez au moins 5 caractères.':'Enregistrement impossible. Vos saisies sont conservées.'};}
 }
