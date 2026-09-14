@@ -8,4 +8,4 @@ export async function programmeContext(requested?: string) {
   return { actor, db, org, spaces };
 }
 export function MissingSpace() { return <section className="card"><h1>Espace indisponible.</h1><p>Choisissez une association accessible ou créez votre espace depuis Mon compte.</p><Link href="/compte">Mon compte →</Link></section>; }
-export function SpaceNavigation({ spaces, selected, path }: { spaces: { id: string; name: string }[]; selected: string; path: string }) { return <nav className="quick-actions" aria-label="Changer d’association">{spaces.map(s => <Link key={s.id} className="button secondary" aria-current={s.id === selected ? 'page' : undefined} href={`${path}?organisation=${s.id}`}>{s.name}</Link>)}</nav>; }
+export function SpaceNavigation({ spaces, selected, path }: { spaces: { id: string; name: string }[]; selected: string; path: string }) { if(path!=='/')return null; return <nav className="quick-actions" aria-label="Changer d’association">{spaces.map(s => <Link key={s.id} className="button secondary" aria-current={s.id === selected ? 'page' : undefined} href={`${path}?organisation=${s.id}`}>{s.name}</Link>)}</nav>; }
