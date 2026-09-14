@@ -26,3 +26,5 @@ La connexion Google exige un administrateur toujours actif dans l’association.
 - Vérifier le signal n8n, le classement et la reprise après indisponibilité temporaire.
 
 À ce stade, les tests automatisés simulent Google et déclarent une taille de 1 Go : ils ne constituent pas un transfert réel de 1 Go. Garder la page ouverte durant l’envoi ; la mise en veille du téléphone peut interrompre le transfert. L’espace disponible et les quotas Google restent applicables.
+
+Le dossier principal s’appelle **Multimédia ComÉternel**. Il contient Réception ComÉternel et les dossiers Année / Date — événement / Rushs ou Livrables / Photos, Vidéos ou Documents. Les connexions existantes conservent leur identifiant de dossier : le nom est actualisé lors de la reconnexion ou du prochain classement, après vérification de son appartenance à l’association.

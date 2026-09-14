@@ -382,3 +382,21 @@ button:disabled { cursor: not-allowed; opacity: .45; box-shadow: none; }
 .help-index a { display: block; padding: 10px 0; }
 @media(max-width:700px){.page-search > summary { padding: 9px; font-size: 12px; }.app-header:has(.page-search) .workspace-identity { display: none; }.page-search-panel { position: fixed; left: 16px; right: 16px; top: 90px; width: auto; }}
 @media print {.help-guide .card { box-shadow:none; break-inside:avoid; }.app-header,.primary-nav,.skip,footer { display:none!important; }.workspace { display:block; }.workspace main { padding:0; }.help-guide .help-index { break-after:page; }}
+
+/* Shared form sizing prevents native controls and long filenames stretching mobile pages. */
+fieldset, input, select, textarea { min-width: 0; max-width: 100%; }
+.grid > *, .field-grid > *, .settings-grid > * { min-width: 0; }
+.settings-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 24px; align-items: start; }
+.drive-path { padding: 12px; border-radius: 10px; background: #f2f5f1; font-size: 13px; }
+@media(max-width:700px) {
+ input, select, textarea { font-size: 16px; }
+ .workspace main { padding: 20px 14px 36px; }
+ .card { padding: 18px; }
+ .page-title { margin: 20px 0; }
+ .page-title h1 { font-size: 30px; line-height: 1.2; }
+ .page-title > p:last-child { font-size: 15px; }
+ fieldset { padding: 12px; }
+ fieldset.form-body { padding: 0; }
+ .settings-grid { grid-template-columns: 1fr; gap: 20px; }
+ .settings-grid .button { max-width: 100%; }
+}

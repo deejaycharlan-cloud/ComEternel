@@ -1,12 +1,13 @@
 import {eq} from 'drizzle-orm';
 import {organizationDeletions} from '../db/team-schema';
-import type {Metadata} from 'next';
+import type {Metadata,Viewport} from 'next';
 import {Workspace,type WorkspaceViewer} from '../components/workspace';
 import {currentSession} from '../modules/identity/session';
 import {teamService} from '../modules/team/service';
 import {programmeService} from '../modules/programme/service';
 import {getDb} from '../db/client';
 import './globals.css';
+export const viewport:Viewport={width:'device-width',initialScale:1};
 export const metadata:Metadata={title:{default:'ComÉternel · Accueil',template:'%s · ComÉternel'},description:'La communication au service du Christ.'};
 export default async function Layout({children}:Readonly<{children:React.ReactNode}>){
  const actor=await currentSession();let viewer:WorkspaceViewer=null;

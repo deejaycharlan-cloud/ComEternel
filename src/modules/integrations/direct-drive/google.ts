@@ -25,3 +25,11 @@ export async function folder(token:string,parent:string|null,key:string,name:str
  const made=await google(token,'files?fields=id','POST',{name,mimeType:'application/vnd.google-apps.folder',...(parent?{parents:[parent]}:{}),appProperties:{cometernelFolder:key,cometernelOrg:org}});return made.id as string;
 }
 export {seal,unseal};
+
+export const rootFolderName='Multimédia ComÉternel';
+export async function ensureRootFolderName(token:string,rootId:string,organizationId:string){
+ const current=await google(token,`files/${encodeURIComponent(rootId)}?fields=id,name,mimeType,trashed,appProperties`);
+ if(current.trashed||current.mimeType!=='application/vnd.google-apps.folder'||current.appProperties?.cometernelOrg!==organizationId||current.appProperties?.cometernelFolder!==`root:${organizationId}`)throw new ProductionError('Le dossier Drive de cette association doit être reconnecté.');
+ if(current.name!==rootFolderName)await google(token,`files/${encodeURIComponent(rootId)}?fields=id`,'PATCH',{name:rootFolderName});
+ return rootId;
+}
