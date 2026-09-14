@@ -1,3 +1,4 @@
+import {deliverInvitation} from '../../src/modules/team/invitation-mail';
 import {notifyJoinRequest} from '../../src/modules/team/notifications';
 import * as production from '../../src/db/production-schema';
 import { test } from 'node:test';
@@ -100,6 +101,17 @@ test('E3 : sessions réelles, lien unique, invitations, refus et départ', async
     await assert.rejects(service.reviewJoin(b.actor,orgA.id,requests[0].id,true,{role:'admin',professions:[],permissions:[]}));
     const approved=await service.reviewJoin(a.actor,orgA.id,requests[0].id,true,{role:'member',professions:['photographe'],permissions:['project.read']});
     assert.ok(approved?.token);
+    const outgoing:{to:string;body:string}[]=[];
+    assert.equal(await deliverInvitation(db,a.actor.user.id,orgA.id,approved,async(to,_subject,body)=>{outgoing.push({to,body});}),true);
+    assert.equal(outgoing[0].to,c.actor.user.email);assert.ok(outgoing[0].body.includes(approved.token));assert.ok(outgoing[0].body.includes(orgA.name));
+    assert.equal(await deliverInvitation(db,a.actor.user.id,orgA.id,approved,async()=>{throw new Error('SMTP failed');}),false);
+    const mailAudit=await db.select().from(team.accessAudit).where(eq(team.accessAudit.targetId,approved.id));
+    assert.ok(mailAudit.some(x=>x.action==='invitation.email_failed'));
+    await assert.rejects(service.resendInvitation(b.actor,orgA.id,approved.id));
+    const renewed=await service.resendInvitation(a.actor,orgA.id,approved.id);assert.notEqual(renewed.token,approved.token);
+    await assert.rejects(service.accept(c.actor,approved.token));
+    await assert.rejects(service.resendInvitation(a.actor,orgA.id,approved.id));
+
     await assert.rejects(service.membership(c.actor,orgA.id));
     await assert.rejects(service.accept(b.actor,approved.token));
     await assert.rejects(service.reviewJoin(a.actor,orgA.id,requests[0].id,true,{role:'admin',professions:[],permissions:[]}));

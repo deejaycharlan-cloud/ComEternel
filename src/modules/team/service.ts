@@ -1,6 +1,6 @@
 import { canCreateTeam } from '../../config/owner';
 import { createHash, randomBytes } from 'node:crypto';
-import { and, eq, isNull, gt } from 'drizzle-orm';
+import { and, eq, isNull, gt, desc } from 'drizzle-orm';
 import { z } from 'zod';
 import { getDb } from '../../db/client';
 import { organizations } from '../../db/schema';
@@ -60,11 +60,11 @@ export function teamService(db: ReturnType<typeof getDb>) {
       return adminTx(actor, orgId, async tx => {
         const [request] = await tx.select().from(joinRequests).where(and(eq(joinRequests.id,id),eq(joinRequests.organizationId,orgId),eq(joinRequests.status,'pending'))).for('update');
         if (!request) throw new AccessError('Demande déjà traitée ou indisponible.');
-        let result: {email:string;token:string}|null = null;
+        let result: {id:string;email:string;token:string}|null = null;
         if (grants) {
           const token = randomBytes(32).toString('base64url');
-          await tx.insert(invitations).values({...grants,organizationId:orgId,email:request.email,createdBy:actor.user.id,tokenHash:createHash('sha256').update(token).digest('hex'),expiresAt:new Date(Date.now()+48*60*60*1000)});
-          result = {email:request.email,token};
+          const [created]=await tx.insert(invitations).values({...grants,organizationId:orgId,email:request.email,createdBy:actor.user.id,tokenHash:createHash('sha256').update(token).digest('hex'),expiresAt:new Date(Date.now()+48*60*60*1000)}).returning({id:invitations.id});
+          result = {id:created.id,email:request.email,token};
         }
         await tx.update(joinRequests).set({status:approve?'approved':'rejected'}).where(eq(joinRequests.id,id));
         await tx.insert(accessAudit).values({organizationId:orgId,actorId:actor.user.id,action:approve?'join.approved':'join.rejected',targetId:id});
@@ -120,6 +120,19 @@ export function teamService(db: ReturnType<typeof getDb>) {
         await tx.update(invitations).set({ acceptedAt: new Date() }).where(eq(invitations.id, invitation.id));
         await tx.insert(accessAudit).values({ organizationId: invitation.organizationId, actorId: actor.user.id, action: 'invitation.accepted', targetId: invitation.id });
         return invitation.organizationId;
+      });
+    },
+    async resendInvitation(actor: Actor, orgId: string, id: string) {
+      uuid.parse(id);
+      return adminTx(actor, orgId, async tx => {
+        const [invitation]=await tx.select().from(invitations).where(and(eq(invitations.id,id),eq(invitations.organizationId,orgId),isNull(invitations.acceptedAt),isNull(invitations.revokedAt))).for('update');
+        if(!invitation)throw new AccessError('Cette invitation ne peut plus être renvoyée.');
+        const [recent]=await tx.select().from(accessAudit).where(and(eq(accessAudit.targetId,id),eq(accessAudit.organizationId,orgId),eq(accessAudit.action,'invitation.resent'))).orderBy(desc(accessAudit.createdAt)).limit(1);
+        if(recent && Date.now()-recent.createdAt.getTime()<60000)throw new AccessError('Patientez une minute avant un nouvel envoi.');
+        const token=randomBytes(32).toString('base64url');
+        await tx.update(invitations).set({tokenHash:createHash('sha256').update(token).digest('hex'),expiresAt:new Date(Date.now()+48*60*60*1000)}).where(eq(invitations.id,id));
+        await tx.insert(accessAudit).values({organizationId:orgId,actorId:actor.user.id,action:'invitation.resent',targetId:id});
+        return {id,email:invitation.email,token};
       });
     },
     async revokeInvitation(actor: Actor, orgId: string, id: string) {
