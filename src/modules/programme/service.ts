@@ -21,7 +21,7 @@ export function programmeService(db: DB) {
     const globalAllowed = m.role === 'admin' || m.permissions.includes('project.edit') || (!edit && m.permissions.includes('project.read'));
     if (!globalAllowed) throw new AccessError();
     const grants = await connection.select().from(projectGrants).where(and(eq(projectGrants.memberId, m.id), eq(projectGrants.projectId, projectId)));
-    if (!grants.some(g => g.permission === 'project.edit' || (!edit && g.permission === 'project.read'))) throw new AccessError();
+    if (m.role !== 'admin' && !grants.some(g => g.permission === 'project.edit' || (!edit && g.permission === 'project.read'))) throw new AccessError();
     const [project] = await connection.select().from(projects).where(and(eq(projects.id, projectId), eq(projects.organizationId, orgId)));
     if (!project) throw new AccessError(); return project;
   }
@@ -38,6 +38,7 @@ export function programmeService(db: DB) {
     async list(actor: Actor, orgId: string) {
       const m = await member(db, actor, orgId);
       if (m.role !== 'admin' && !m.permissions.some(x => x === 'project.read' || x === 'project.edit')) return [];
+      if (m.role === 'admin') return db.select().from(projects).where(eq(projects.organizationId, orgId)).orderBy(asc(projects.startDate));
       const grants = await db.select({ projectId: projectGrants.projectId }).from(projectGrants).where(and(eq(projectGrants.memberId, m.id), inArray(projectGrants.permission, ['project.read','project.edit'])));
       if (!grants.length) return [];
       return db.select().from(projects).where(and(eq(projects.organizationId, orgId), inArray(projects.id, grants.map(g => g.projectId)))).orderBy(asc(projects.startDate));

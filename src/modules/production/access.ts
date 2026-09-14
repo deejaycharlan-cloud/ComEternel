@@ -14,7 +14,7 @@ export async function access(c:Conn,a:Actor,org:string,project:string,mode:'read
  const [p]=await c.select().from(projects).where(and(eq(projects.organizationId,org),eq(projects.id,project)));
  if(!m||!p)throw new AccessError();const gs=await c.select().from(projectGrants).where(and(eq(projectGrants.memberId,m.id),eq(projectGrants.projectId,project)));
  const global=mode==='validate'?m.permissions.includes('content.validate'):m.role==='admin'||m.permissions.includes('project.edit')||(mode==='read'&&m.permissions.includes('project.read'));
- const scoped=gs.some(g=>mode==='validate'?g.permission==='content.validate':g.permission==='project.edit'||(mode==='read'&&g.permission==='project.read'));
+ const scoped=(m.role==='admin'&&mode!=='validate')||gs.some(g=>mode==='validate'?g.permission==='content.validate':g.permission==='project.edit'||(mode==='read'&&g.permission==='project.read'));
  if(!global||!scoped)throw new AccessError();return {m,p};
 }
 export async function active(c:Conn,p:typeof projects.$inferSelect,occurrenceId:string|null){if(p.status!=='preparation')throw new ProductionError('Projet annulé ou archivé : opération suspendue.');if(occurrenceId){z.uuid().parse(occurrenceId);const [e]=await c.select().from(occurrences).where(and(eq(occurrences.id,occurrenceId),eq(occurrences.projectId,p.id)));if(!e||e.status==='cancelled')throw new ProductionError('Occurrence annulée ou indisponible.');}}
