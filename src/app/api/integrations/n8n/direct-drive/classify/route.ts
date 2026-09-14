@@ -1,0 +1,3 @@
+export const maxDuration=60;
+import {worker} from '../../../../../../modules/integrations/direct-drive/worker';
+export async function POST(request:Request){return worker(request,'classify');}

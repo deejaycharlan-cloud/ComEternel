@@ -9,7 +9,7 @@ import {type Actor,AccessError} from '../team/service';
 import {hash,read} from '../production/storage';
 export type DriveConfig={organizationId:string;folderId:string;token:string;autoRush?:boolean};
 const googleId=z.string().regex(/^[A-Za-z0-9_-]{10,200}$/);
-export function driveConfig():DriveConfig|null{const parsed=z.object({organizationId:z.uuid(),folderId:googleId,token:z.string().min(32).max(512)}).safeParse({organizationId:process.env.N8N_ORGANIZATION_ID,folderId:process.env.GOOGLE_DRIVE_FOLDER_ID,token:process.env.N8N_SERVICE_TOKEN});return parsed.success?{...parsed.data,autoRush:true}:null;}
+export function driveConfig():DriveConfig|null{const parsed=z.object({organizationId:z.uuid(),folderId:googleId,token:z.string().min(32).max(512)}).safeParse({organizationId:process.env.N8N_ORGANIZATION_ID,folderId:process.env.GOOGLE_DRIVE_FOLDER_ID,token:process.env.N8N_SERVICE_TOKEN});return parsed.success?{...parsed.data,autoRush:false}:null;}
 export function authenticateWorker(header:string|null,config:DriveConfig|null){if(!config)throw new AccessError('Connexion n8n non configurée.');const supplied=header?.startsWith('Bearer ')?header.slice(7):'';if(!timingSafeEqual(Buffer.from(hash(supplied)),Buffer.from(hash(config.token))))throw new AccessError('Accès au transfert refusé.');return config;}
 const receiptSchema=z.object({id:googleId,size:z.string().regex(/^\d+$/),sha256Checksum:z.string().regex(/^[a-f0-9]{64}$/),parents:z.array(googleId).min(1).max(10),trashed:z.literal(false),mimeType:z.string().optional(),appProperties:z.object({cometernelJob:z.uuid()})});
 export function driveTransferService(db:DB,config:DriveConfig){

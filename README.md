@@ -1,10 +1,10 @@
-# ComÉternel — application Next.js
+# ComÉternel — La communication au service du Christ
 
-Application française de préparation, collecte de fichiers et suivi éditorial. Le parcours local est disponible ; Google Drive est reporté. Voir [le guide de test](docs/guide-pilote.md), [le bilan et les limites](docs/bilan-final-local.md) et [la sauvegarde/restauration](docs/exploitation-locale.md).
+Application Next.js pour organiser les événements d’une association, attribuer les rôles, inviter les membres et préparer les contenus à publier.
 
-## Démarrer
+## Installation locale
 
-Prérequis : Node.js 22 ou version compatible supérieure, npm, Docker Desktop démarré. Dans ce dossier :
+Prérequis : Node.js 22, npm et PostgreSQL (Docker Compose fourni).
 
 ```sh
 npm ci
@@ -15,34 +15,33 @@ npm run db:migrate
 npm run dev -- --port 3100
 ```
 
-Ouvrir http://127.0.0.1:3100. Pour changer de port, adapter aussi `BETTER_AUTH_URL` dans `.env.local`.
+Ouvrir http://127.0.0.1:3100. Copier l’exemple de configuration uniquement à la première installation. Ne jamais remplacer une configuration existante ni versionner `.env.local`.
 
-Ne recopier `.env.example` qu'à la première installation : conserver ensuite votre configuration. Les identifiants de l'exemple sont réservés à cette base de développement, liée à la boucle locale. Ne pas y importer de données sensibles : le mode email local est réservé aux essais.
+## Hébergement
 
-Pour la version compilée : `npm run build`, puis `npm start -- --port 3100`. L'application et PostgreSQL écoutent sur 127.0.0.1. Aucune publication n'est configurée.
+La version publique utilise GitHub, Vercel, PostgreSQL Supabase et Brevo SMTP. Voir [le guide Vercel](docs/deploiement-vercel.md). Les secrets sont configurés dans l’hébergeur ; `.env.example` contient uniquement des exemples locaux et des champs vides.
 
-## Vérifier
+Appliquer les migrations SQL avant de déployer la version qui les utilise. Conserver le stockage privé S3 pour les fichiers déjà reçus. Ne pas supprimer un volume, une base ou un ancien fichier lors d’une mise à jour.
+
+## Google Drive et n8n
+
+Chaque association connecte son propre compte Google depuis Réglages. Le compte de connexion à ComÉternel peut être différent. Aucun compte Google du développeur n’est utilisé par défaut.
+
+Le navigateur envoie les fichiers par fragments directement dans Drive. ComÉternel vérifie leur taille et leur empreinte, puis signale à n8n qu’un classement est disponible. n8n appelle l’application pour classer le fichier avec la connexion de la bonne association ; ni le fichier complet ni les identifiants Google ne transitent dans le workflow.
+
+Classement : année → date et nom de l’événement → Rushs ou Livrables → Photos, Vidéos ou Documents. Les droits de publication restent distincts de la réception privée des fichiers.
+
+Voir [la configuration Drive et la recette](docs/drive-direct.md). Cette évolution doit être validée sur un véritable gros fichier et sur téléphone avant livraison ; les tests simulés ne prouvent pas la réussite d’un transfert réel.
+
+## Vérifications
 
 ```sh
 npm test
 npm run build
 npm run typecheck
-docker compose exec -T db createdb -U cometernel cometernel_test
 npm run test:integration
 ```
 
-Créer la base de test une seule fois. Les tests refusent une URL sans suffixe `_test` ou identique à la base applicative. Ils créent puis suppriment uniquement leurs données synthétiques.
+Les tests d’intégration exigent une base dédiée dont le nom se termine par `_test`, différente de la base applicative. Ils n’utilisent pas les données de production. Les tests utiles restent dans le dépôt ; les fichiers temporaires et les secrets en sont exclus.
 
-Essai de persistance : créer un espace, arrêter l'application, exécuter `docker compose restart db`, puis relancer l'application. Le même espace doit réapparaître. `docker compose stop` arrête la base sans supprimer son volume ; `docker compose up -d --wait` la relance. Ne pas utiliser l'option `down -v` : elle supprimerait le volume.
-
-## Pilote et sauvegarde
-
-Le pilote existant utilise une base et des fichiers séparés : `npm run pilot:local` sur http://localhost:3101. Les données principales restent sur http://127.0.0.1:3100.
-
-`npm run backup:local` sauvegarde base principale et fichiers locaux. `npm run test:restore` vérifie la restauration du pilote dans une nouvelle base isolée. Consulter le guide d’exploitation avant toute récupération réelle.
-
-Les bilans E1–E5 sont historiques. Aucun ancien espace n’a été supprimé. Aucune publication externe ni connexion Drive n’est activée.
-
-## Hébergement Vercel
-
-Importer ce dépôt avec le framework Next.js et le dossier racine `.`. Consulter [le guide Vercel](docs/deploiement-vercel.md). Ce dépôt contient exclusivement la version Next.js, sans la version ChatGPT Sites ni les données locales.
+Les documents de pilote et bilans locaux sont historiques. Ils ne décrivent pas l’état de la version hébergée. Les procédures de sauvegarde locales restent disponibles dans [le guide d’exploitation](docs/exploitation-locale.md).

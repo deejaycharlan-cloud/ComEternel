@@ -1,9 +1,10 @@
+import {clientIp} from '../../../../modules/security/client-ip';
 import { getAuth } from '../../../../modules/identity/auth';
 export const dynamic = 'force-dynamic';
 async function handle(request: Request) {
-  // Ne faire confiance à aucun en-tête IP fourni directement au serveur local.
+  // Séparer les limites des visiteurs Vercel ; ignorer les adresses fournies au serveur local.
   const headers = new Headers(request.headers);
-  headers.set('x-forwarded-for', '127.0.0.1');
+  headers.set('x-forwarded-for', clientIp(request.headers));
   headers.delete('x-real-ip');
   try { return await getAuth().handler(new Request(request, { headers })); }
   catch (error) {

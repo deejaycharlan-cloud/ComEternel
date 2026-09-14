@@ -15,6 +15,7 @@ export function createAuth(db: ReturnType<typeof getDb>, send = sendMail) {
     appName: 'ComÉternel', baseURL: process.env.BETTER_AUTH_URL || 'http://127.0.0.1:3100', secret,
     database: drizzleAdapter(db, { provider: 'pg', schema, transaction: true }),
     logger: { disabled: true },
+    advanced: { ipAddress: { ipAddressHeaders: ['x-forwarded-for'] } },
     hooks: { before: createAuthMiddleware(async ctx => {
       if (send === sendMail && ['/sign-up/email','/request-password-reset','/sign-in/magic-link'].includes(ctx.path)) {
         try { mailConfig(); } catch { throw new APIError('SERVICE_UNAVAILABLE', { message: 'Le service email est indisponible. Utilisez Google ou réessayez après son activation.' }); }

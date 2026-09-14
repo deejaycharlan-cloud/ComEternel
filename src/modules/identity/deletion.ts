@@ -5,6 +5,7 @@ import {user,account,session,verification} from '../../db/auth-schema';
 import {organizations} from '../../db/schema';
 import {members,accountDeletions,organizationDeletions,erasedFiles,googleCalendars,joinRequests,invitations,projectGrants} from '../../db/team-schema';
 import {AccessError,requireFresh,type Actor} from '../team/service';
+import {driveConnections} from '../../db/production-schema';
 import {availabilities} from '../../db/work-schema';
 import {removeStored} from '../production/storage';
 type DB=ReturnType<typeof getDb>;
@@ -61,6 +62,7 @@ export async function processDeletions(db:DB,remove=removeStored){
    if(ids.length){await tx.delete(availabilities).where(inArray(availabilities.memberId,ids));await tx.delete(projectGrants).where(inArray(projectGrants.memberId,ids));}
    await tx.update(members).set({revokedAt:new Date(),professions:[],permissions:[]}).where(eq(members.userId,d.userId));
    await tx.delete(googleCalendars).where(eq(googleCalendars.connectedBy,d.userId));
+   await tx.update(driveConnections).set({refreshToken:'',status:'disconnected',googleEmail:'',googleSubject:''}).where(eq(driveConnections.connectedBy,d.userId));
    await tx.delete(joinRequests).where(eq(joinRequests.email,u.email));await tx.delete(invitations).where(eq(invitations.email,u.email));
    await tx.delete(session).where(eq(session.userId,d.userId));await tx.delete(account).where(eq(account.userId,d.userId));await tx.delete(verification).where(eq(verification.identifier,u.email));
    // Shared associations explicitly transferred retain contributions without the person's login identity.
