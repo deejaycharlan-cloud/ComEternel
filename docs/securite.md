@@ -7,7 +7,7 @@
 - Aucun secret disponible pour comparaison trouvé dans les fichiers JavaScript destinés au navigateur. Les identifiants publics OAuth et les URL de services ne sont pas des mots de passe.
 - `npm audit` : zéro vulnérabilité connue signalée à la date du contrôle. Cela ne garantit pas l’absence de vulnérabilité inconnue.
 - Supabase : les 38 tables publiques existantes ont RLS activé et aucune politique publique d’accès. Les deux nouvelles tables Drive sont créées avec RLS. L’application accède aux données côté serveur avec des contrôles d’association et de rôle.
-- 11 tests unitaires et 8 scénarios d’intégration passent : sessions, invitations, refus, suppression différée, rôles, isolation entre associations, chiffrement et reprise des fichiers.
+- 12 tests unitaires et 8 scénarios d’intégration passent : sessions, invitations, refus, suppression différée, rôles, isolation entre associations, chiffrement et reprise des fichiers.
 
 ## Correctifs préparés
 

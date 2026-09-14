@@ -1,0 +1,25 @@
+// <workflow-map>
+// Workflow : ComÉternel — Classement Drive par association
+// Nodes : 6
+// SignalApplication / ReprisePeriodique -> ReserverClassement -> TravailDisponible
+// TravailDisponible.true -> ClasserDansDrive -> ReserverClassement
+// TravailDisponible.false -> Termine
+// Aucun fichier binaire ni jeton Google ne transite dans ce workflow.
+// </workflow-map>
+import {workflow,node,links} from '@n8n-as-code/transformer';
+@workflow({id:'5Zt75RqjjieeWPAM',name:'ComÉternel — Classement Drive par association',active:true,isArchived:false,projectId:'7sFDp1OyENlZ9Aar',settings:{executionOrder:'v1',timezone:'America/Martinique',executionTimeout:300,saveDataSuccessExecution:'none',saveDataErrorExecution:'none',saveManualExecutions:false,saveExecutionProgress:false}})
+export class ClassementDrive {
+ @node({name:'Signal de ComÉternel',type:'n8n-nodes-base.webhook',version:2.1,position:[0,0],webhookId:'cometernel-direct-drive',credentials:{httpHeaderAuth:{id:'bkelsZajf3sxzG3T',name:'ComÉternel application — test Drive'}}})
+ SignalApplication={httpMethod:'POST',path:'cometernel-direct-drive',authentication:'headerAuth',responseMode:'onReceived',responseCode:202,options:{}};
+ @node({name:'Reprendre les classements en attente',type:'n8n-nodes-base.scheduleTrigger',version:1.3,position:[0,220]})
+ ReprisePeriodique={rule:{interval:[{field:'minutes',minutesInterval:1}]}};
+ @node({name:'Réserver un classement',type:'n8n-nodes-base.httpRequest',version:4.4,position:[280,100],credentials:{httpHeaderAuth:{id:'bkelsZajf3sxzG3T',name:'ComÉternel application — test Drive'}},retryOnFail:true,maxTries:2,waitBetweenTries:3000})
+ ReserverClassement={method:'POST',url:'https://com-eternel.vercel.app/api/integrations/n8n/direct-drive/claim',authentication:'genericCredentialType',genericAuthType:'httpHeaderAuth',sendBody:true,specifyBody:'json',jsonBody:'{}',options:{redirect:{redirect:{followRedirects:false}},response:{response:{responseFormat:'json'}},timeout:30000}};
+ @node({name:'Un classement disponible',type:'n8n-nodes-base.if',version:2.3,position:[550,100]})
+ TravailDisponible={conditions:{options:{caseSensitive:true,leftValue:'',typeValidation:'strict',version:3},combinator:'and',conditions:[{id:'classement-present',leftValue:'={{ $json.job !== null && typeof $json.job === "object" }}',rightValue:true,operator:{type:'boolean',operation:'true',singleValue:true}}]},options:{}};
+ @node({name:'Classer dans le Drive de l’association',type:'n8n-nodes-base.httpRequest',version:4.4,position:[830,0],credentials:{httpHeaderAuth:{id:'bkelsZajf3sxzG3T',name:'ComÉternel application — test Drive'}},retryOnFail:true,maxTries:2,waitBetweenTries:5000,notes:'L’application retrouve la connexion Google de l’association depuis le travail réservé. Aucun compte Google personnel fixe. Le fichier reste dans Drive en cas de reprise.',notesInFlow:true})
+ ClasserDansDrive={method:'POST',url:'https://com-eternel.vercel.app/api/integrations/n8n/direct-drive/classify',authentication:'genericCredentialType',genericAuthType:'httpHeaderAuth',sendBody:true,specifyBody:'json',jsonBody:'={{ { id: $json.job.id, leaseId: $json.job.leaseId } }}',options:{redirect:{redirect:{followRedirects:false}},response:{response:{responseFormat:'json'}},timeout:65000}};
+ @node({name:'Aucun classement en attente',type:'n8n-nodes-base.noOp',version:1,position:[830,240]})
+ Termine={};
+ @links() defineRouting(){this.SignalApplication.out(0).to(this.ReserverClassement.in(0));this.ReprisePeriodique.out(0).to(this.ReserverClassement.in(0));this.ReserverClassement.out(0).to(this.TravailDisponible.in(0));this.TravailDisponible.out(0).to(this.ClasserDansDrive.in(0));this.TravailDisponible.out(1).to(this.Termine.in(0));this.ClasserDansDrive.out(0).to(this.ReserverClassement.in(0));}
+}
