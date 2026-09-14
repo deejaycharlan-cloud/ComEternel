@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { validPassword, passwordHint } from '../../modules/identity/password';
 import { authClient } from '../../modules/identity/client';
-export function LoginForm({googleEnabled,mailEnabled,linkError,returnTo='/compte',joinCode='',initialEmail='',invitationName=''}: {googleEnabled:boolean;localMail:boolean;mailEnabled:boolean;linkError:boolean;returnTo?:string;joinCode?:string;initialEmail?:string;invitationName?:string}) {
+export function LoginForm({googleEnabled,mailEnabled,linkError,returnTo='/',joinCode='',initialEmail='',invitationName=''}: {googleEnabled:boolean;localMail:boolean;mailEnabled:boolean;linkError:boolean;returnTo?:string;joinCode?:string;initialEmail?:string;invitationName?:string}) {
  const [mode,setMode]=useState<'login'|'signup'|'forgot'>(invitationName?'signup':'login');
  const [email,setEmail]=useState(initialEmail),[password,setPassword]=useState(''),[name,setName]=useState('');
  const [confirmation,setConfirmation]=useState('');
