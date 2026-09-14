@@ -48,7 +48,8 @@ export function teamService(db: ReturnType<typeof getDb>) {
       const code = z.string().trim().toUpperCase().regex(/^[A-F0-9]{16}$/).parse(codeInput);
       const [org] = await db.select().from(joinCodes).where(eq(joinCodes.code, code));
       if (!org) return;
-      await db.insert(joinRequests).values({organizationId: org.organizationId,email}).onConflictDoNothing();
+      const [created] = await db.insert(joinRequests).values({organizationId: org.organizationId,email}).onConflictDoNothing().returning({id:joinRequests.id});
+      return created?.id;
     },
     async listJoinRequests(actor: Actor, orgId: string) {
       const member = await membership(actor, orgId); if (member.role !== 'admin') throw new AccessError();

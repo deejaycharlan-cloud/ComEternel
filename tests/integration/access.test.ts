@@ -1,3 +1,4 @@
+import {notifyJoinRequest} from '../../src/modules/team/notifications';
 import * as production from '../../src/db/production-schema';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -84,8 +85,15 @@ test('E3 : sessions réelles, lien unique, invitations, refus et départ', async
     const codeA=await service.getJoinCode(a.actor,orgA.id);
     assert.equal(await service.getJoinCode(a.actor,orgA.id),codeA);
     await assert.rejects(service.getJoinCode(b.actor,orgA.id));
-    await service.requestJoin(c.actor.user.email,codeA);
-    await service.requestJoin(c.actor.user.email,codeA);
+    const requestId=await service.requestJoin(c.actor.user.email,codeA);assert.ok(requestId);
+    assert.equal(await service.requestJoin(c.actor.user.email,codeA),undefined);
+    const alerts:{to:string;body:string}[]=[];
+    await notifyJoinRequest(db,requestId,async(to,_subject,body)=>{alerts.push({to,body});});
+    assert.deepEqual(alerts.map(x=>x.to),[a.actor.user.email]);
+    assert.ok(alerts[0].body.includes(orgA.id));
+    assert.ok(alerts[0].body.includes(c.actor.user.email));
+    await assert.rejects(notifyJoinRequest(db,requestId,async()=>{throw new Error('SMTP indisponible');}));
+    assert.equal((await service.listJoinRequests(a.actor,orgA.id)).length,1);
     const requests=await service.listJoinRequests(a.actor,orgA.id); assert.equal(requests.length,1);
     assert.equal((await service.listJoinRequests(b.actor,orgB.id)).length,0);
     await assert.rejects(service.membership(c.actor,orgA.id));
@@ -96,6 +104,7 @@ test('E3 : sessions réelles, lien unique, invitations, refus et départ', async
     await assert.rejects(service.accept(b.actor,approved.token));
     await assert.rejects(service.reviewJoin(a.actor,orgA.id,requests[0].id,true,{role:'admin',professions:[],permissions:[]}));
     assert.equal((await service.listJoinRequests(a.actor,orgA.id)).length,0);
+    await notifyJoinRequest(db,requestId,async()=>{assert.fail('Une demande traitée ne doit pas notifier');});
     const old: Actor = { ...a.actor, session: { createdAt: new Date(Date.now() - 600_000) } };
     await assert.rejects(service.invite(old, orgA.id, { email: c.actor.user.email, role: 'member', professions: [], permissions: [] }));
     const invitation = await service.invite(a.actor, orgA.id, { email: c.actor.user.email, role: 'member', professions: ['validation', 'photographe'], permissions: ['project.read'] });
