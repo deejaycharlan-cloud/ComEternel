@@ -1,1 +1,1 @@
-export default function Loading() { return <div className="card" role="status"><h2>Ouverture de votre espace…</h2><p>Les informations arrivent.</p></div>; }
+export default function Loading(){return <div className="page-loading" role="status" aria-live="polite"><span aria-hidden="true"/>Chargement…</div>;}

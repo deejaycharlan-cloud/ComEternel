@@ -400,3 +400,9 @@ fieldset, input, select, textarea { min-width: 0; max-width: 100%; }
  .settings-grid { grid-template-columns: 1fr; gap: 20px; }
  .settings-grid .button { max-width: 100%; }
 }
+
+.page-loading { min-height: 45vh; display: flex; align-items: flex-start; justify-content: center; gap: 10px; padding-top: 32px; font-size: 14px; color: var(--muted); animation: loading-reveal .2s ease-out both; }
+.page-loading > span { width: 16px; height: 16px; margin-top: 3px; border: 2px solid #dce5df; border-top-color: var(--ink); border-radius: 50%; animation: loading-spin 1s linear infinite; }
+@keyframes loading-spin { to { transform: rotate(360deg); } }
+@keyframes loading-reveal { 0%,80% { opacity: 0; } 100% { opacity: 1; } }
+@media(prefers-reduced-motion:reduce) { .page-loading, .page-loading > span { animation: none; } }

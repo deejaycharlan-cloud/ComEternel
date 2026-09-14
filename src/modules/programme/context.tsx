@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { requireSession } from '../identity/session';
 import { getDb } from '../../db/client';
-import { teamService } from '../team/service';
+import { currentWorkspace } from '../identity/workspace';
 export async function programmeContext(requested?: string) {
-  const actor = await requireSession(); const db = getDb(); const spaces = await teamService(db).listOrganizations(actor);
+  const actor = await requireSession(); const db = getDb(); const spaces = await currentWorkspace();
   const org = requested ? spaces.find(s => s.id === requested) : spaces[0];
   return { actor, db, org, spaces };
 }

@@ -20,7 +20,7 @@ export function programmeService(db: DB) {
     const m = await member(connection, actor, orgId); if (!z.uuid().safeParse(projectId).success) throw new AccessError();
     const globalAllowed = m.role === 'admin' || m.permissions.includes('project.edit') || (!edit && m.permissions.includes('project.read'));
     if (!globalAllowed) throw new AccessError();
-    const grants = await connection.select().from(projectGrants).where(and(eq(projectGrants.memberId, m.id), eq(projectGrants.projectId, projectId)));
+    const grants = m.role === 'admin' ? [] : await connection.select().from(projectGrants).where(and(eq(projectGrants.memberId, m.id), eq(projectGrants.projectId, projectId)));
     if (m.role !== 'admin' && !grants.some(g => g.permission === 'project.edit' || (!edit && g.permission === 'project.read'))) throw new AccessError();
     const [project] = await connection.select().from(projects).where(and(eq(projects.id, projectId), eq(projects.organizationId, orgId)));
     if (!project) throw new AccessError(); return project;
@@ -119,8 +119,8 @@ export function programmeService(db: DB) {
     },
     async calendar(actor: Actor, orgId: string) {
       const list = await this.list(actor, orgId); const active = list.filter(p => p.status !== 'archived');
-      const events = active.length ? await db.select().from(occurrences).where(inArray(occurrences.projectId, active.map(p => p.id))).orderBy(asc(occurrences.startDate)) : [];
-      return { projects: active, events, liturgy: await db.select().from(liturgicalDates).where(eq(liturgicalDates.organizationId, orgId)).orderBy(asc(liturgicalDates.date)) };
+      const [events,liturgy] = await Promise.all([active.length ? db.select().from(occurrences).where(inArray(occurrences.projectId, active.map(p => p.id))).orderBy(asc(occurrences.startDate)) : Promise.resolve([]), db.select().from(liturgicalDates).where(eq(liturgicalDates.organizationId, orgId)).orderBy(asc(liturgicalDates.date))]);
+      return { projects: active, events, liturgy };
     },
     async saveLiturgy(actor: Actor, orgId: string, input: unknown, id?: string, revision?: number) {
       requireFresh(actor); const value = liturgyInput.parse(input); if (id) z.uuid().parse(id);
