@@ -406,3 +406,7 @@ fieldset, input, select, textarea { min-width: 0; max-width: 100%; }
 @keyframes loading-spin { to { transform: rotate(360deg); } }
 @keyframes loading-reveal { 0%,80% { opacity: 0; } 100% { opacity: 1; } }
 @media(prefers-reduced-motion:reduce) { .page-loading, .page-loading > span { animation: none; } }
+
+.auth-options { display: grid; gap: 1.5rem; width: 100%; max-width: 44rem; margin-inline: auto; }
+.auth-options > .join-association { margin-top: 0; }
+.auth-options details > form { margin-top: 1rem; }
